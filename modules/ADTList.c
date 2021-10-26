@@ -8,6 +8,7 @@
 #include <assert.h>
 
 #include "ADTList.h"
+#include "core.h"
 
 
 // Ενα List είναι pointer σε αυτό το struct
