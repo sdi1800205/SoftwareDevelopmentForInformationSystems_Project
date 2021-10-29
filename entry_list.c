@@ -163,3 +163,22 @@ entry* get_next(const entry_list* el, const entry* e) {
 
     return NULL;
 }
+
+ErrorCode destroy_entry_list(entry_list* el) {
+    if (*el == NULL) {
+        printf("Entry list is not initialized\n");
+        return EC_FAIL;
+    }
+
+    entry* next, temp = get_first(el);
+    while (temp != LIST_EOF) {
+        next = get_next(el, temp);
+        destroy_entry(&temp);
+        (*el)->size--;
+        temp = next;
+    }
+    
+    free((*el));
+
+    return EC_SUCCESS;
+}
