@@ -24,10 +24,21 @@ ErrorCode create_entry(const char* w, entry* e) {
     // copy the given word into newEntry->word
     strcpy(newEntry->word, w);
 
+    // set everything else to null
     newEntry->payload = NULL;
     newEntry->next = NULL;
 
+    // assign the created entry to the pointer
     *e = newEntry;
+
+    return EC_SUCCESS;
+}
+
+ErrorCode destroy_entry(entry *e) {
+    free(*e);
+    if (*e != NULL) {
+        return EC_FAIL;
+    }
 
     return EC_SUCCESS;
 }
