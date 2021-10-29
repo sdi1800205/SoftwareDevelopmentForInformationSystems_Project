@@ -69,6 +69,7 @@ ErrorCode create_entry_list(entry_list* el) {
     // Initialize entry_list members
     newEntryList->dummy = LIST_BOF;
     newEntryList->last = LIST_EOF;
+    newEntryList->dummy->next = newEntryList->last;
     newEntryList->size = 0;
 
     return EC_SUCCESS;
@@ -121,4 +122,44 @@ ErrorCode add_entry(entry_list* el, const entry* e) {
     (*el)->last = new_entry;
 
     return EC_SUCCESS;
+}
+
+entry* get_first(const entry_list* el) {
+    if (*el == NULL) {
+        printf("Entry list is not initialized\n");
+        return NULL;
+    }
+
+    if ((*el)->size == 0) {
+        printf("Entry list is empty\n");
+        return NULL;
+    }
+    return (*el)->dummy->next;
+}
+
+entry* get_next(const entry_list* el, const entry* e) {
+    if (*el == NULL || *e == NULL) {
+        printf("Given arguments must not be null\n");
+        return NULL;
+    }
+
+    if ((*el)->size == 0) {
+        printf("Entry list is empty\n");
+        return (*el)->last;
+    }
+
+    entry temp = (*el)->dummy->next;
+
+    int found = 0;
+    while (!found && temp->next != LIST_EOF) {
+        if (temp == *e) {
+            found = 1;
+            return temp->next;
+        }
+        else {
+            temp = temp->next;
+        }
+    }
+
+    return NULL;
 }
