@@ -20,7 +20,7 @@ struct entry
 
 struct entry_list
 {
-    entry dummy;
+    entry dummy;    // virtual entry that points to the first entry
     entry last;
     
     int size;
@@ -31,8 +31,8 @@ ErrorCode destroy_entry(entry* e);
 ErrorCode create_entry_list(entry_list* el);
 unsigned int get_number_entries(const entry_list el);
 ErrorCode add_entry(entry_list* el, const entry e);
-entry* get_first(const entry_list* el);
-entry* get_next(const entry_list* el, const entry e);
+entry get_first(const entry_list* el);
+entry get_next(const entry_list* el, const entry e);
 ErrorCode destroy_entry_list(entry_list* el);
 
 #endif //__ENTRY_H_

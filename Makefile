@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-I.
-DEPS = entry_list.h core.h
+DEPS = interface.h core.h
 OBJ = main.o entry_list.o
 
 %.o: %.c $(DEPS)
@@ -12,4 +12,4 @@ main: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ 
+	rm -f *.o *~ *.exe

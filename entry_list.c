@@ -1,16 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "entry_list.h"
+#include "interface.h"
 #include "core.h"
 
 ErrorCode create_entry(const char* w, entry* e) {
     if (w == NULL) {
         printf("Given word is empty\n");
-        return EC_FAIL;
-    }
-    if (*e != NULL) {
-        printf("Entry to be created must be null\n");
         return EC_FAIL;
     }
 
@@ -58,11 +54,6 @@ ErrorCode destroy_entry(entry *e) {
 }
 
 ErrorCode create_entry_list(entry_list* el) {
-    if (*el != NULL) {
-        printf("Entry list to be created must be null\n");
-        return EC_FAIL;
-    }
-
     // Allocate entry_list memory
     entry_list newEntryList = malloc(sizeof(struct entry_list));
     if(newEntryList == NULL) {
@@ -70,10 +61,14 @@ ErrorCode create_entry_list(entry_list* el) {
         return EC_NO_AVAIL_RES;
     }
 
+    // Create dummy entry (virtual entry that will point to the first entry)
+    create_entry("dummy", &(newEntryList->dummy));
+    newEntryList->last = newEntryList->dummy;
+
     // Initialize entry_list members
-    newEntryList->dummy = LIST_BOF;
+    // newEntryList->dummy = LIST_BOF;
     newEntryList->last = LIST_EOF;
-    newEntryList->dummy->next = newEntryList->last;
+    // newEntryList->dummy->next = newEntryList->last;
     newEntryList->size = 0;
 
     *el = newEntryList;
@@ -104,7 +99,6 @@ ErrorCode add_entry(entry_list* el, const entry e) {
     }
 
     // Copy the values of given entry to the new entry
-    new_entry->payload = e->payload;
 
     new_entry->word = malloc(strlen((e->word)+1)*sizeof(char));
     if (new_entry->word == NULL) {
@@ -112,25 +106,28 @@ ErrorCode add_entry(entry_list* el, const entry e) {
         return EC_FAIL;
     }
     strcpy(new_entry->word, e->word);
+    // new_entry->payload = e->payload;
 
     // this entry will be added to the end of list, so it doesn't have next entry
-    new_entry->next = LIST_EOF;
+    // new_entry->next = LIST_EOF;
 
     // Check if this is the first entry of entry_list
     if((*el)->size == 0) {
         (*el)->dummy->next = new_entry;
-        (*el)->size++;
         (*el)->last = new_entry;
     }
-
-    // set the last entry of entry list as this node
-    (*el)->last->next = new_entry;
-    (*el)->last = new_entry;
+    else {
+        // set the last entry of entry list as this node
+        (*el)->last->next = new_entry;
+        (*el)->last = new_entry;
+    }
+    
+    (*el)->size++;
 
     return EC_SUCCESS;
 }
 
-entry* get_first(const entry_list* el) {
+entry get_first(const entry_list* el) {
     if (*el == NULL) {
         printf("Entry list is not initialized\n");
         return NULL;
@@ -143,7 +140,7 @@ entry* get_first(const entry_list* el) {
     return (*el)->dummy->next;
 }
 
-entry* get_next(const entry_list* el, const entry e) {
+entry get_next(const entry_list* el, const entry e) {
     if (*el == NULL || e == NULL) {
         printf("Given arguments must not be null\n");
         return NULL;
@@ -176,11 +173,13 @@ ErrorCode destroy_entry_list(entry_list* el) {
         return EC_FAIL;
     }
 
-    entry* next, temp = get_first(el);
+    entry next;
+    entry temp = get_first(el);
     while (temp != LIST_EOF) {
         next = get_next(el, temp);
         destroy_entry(&temp);
         (*el)->size--;
+        printf("Current number of entries in entry list:%d\n", (*el)->size);
         temp = next;
     }
     
