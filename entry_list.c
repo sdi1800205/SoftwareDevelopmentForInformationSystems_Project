@@ -41,11 +41,15 @@ ErrorCode create_entry(const char* w, entry* e) {
 }
 
 ErrorCode destroy_entry(entry *e) {
+    if (*e == NULL) {
+        printf("Given entry is already null");
+        return EC_FAIL;
+    }
 
     free((*e)->word);
     free((*e)->payload);
-    free(*e);
-    if (*e != NULL) {
+    free((*e));
+    if ((*e) != NULL) {
         printf("Given entry was not successully destroyed\n");
         return EC_FAIL;
     }
@@ -72,20 +76,22 @@ ErrorCode create_entry_list(entry_list* el) {
     newEntryList->dummy->next = newEntryList->last;
     newEntryList->size = 0;
 
+    *el = newEntryList;
+
     return EC_SUCCESS;
 }
 
-unsigned int get_number_entries(const entry_list* el) {
-    if (*el == NULL) {
+unsigned int get_number_entries(const entry_list el) {
+    if (el == NULL) {
         printf("Entry is list not initialized\n");
         return 0;
     }
 
-    return (*el)->size;
+    return el->size;
 }
 
-ErrorCode add_entry(entry_list* el, const entry* e) {
-    if (*el == NULL || *e == NULL) {
+ErrorCode add_entry(entry_list* el, const entry e) {
+    if (*el == NULL || e == NULL) {
         printf("Given parameters are null\n");
         return EC_FAIL;
     }
@@ -98,14 +104,14 @@ ErrorCode add_entry(entry_list* el, const entry* e) {
     }
 
     // Copy the values of given entry to the new entry
-    new_entry->payload = (*e)->payload;
+    new_entry->payload = e->payload;
 
-    new_entry->word = malloc(strlen(((*e)->word)+1)*sizeof(char));
+    new_entry->word = malloc(strlen((e->word)+1)*sizeof(char));
     if (new_entry->word == NULL) {
         printf("Error while allocating memory\n");
         return EC_FAIL;
     }
-    strcpy(new_entry->word, (*e)->word);
+    strcpy(new_entry->word, e->word);
 
     // this entry will be added to the end of list, so it doesn't have next entry
     new_entry->next = LIST_EOF;
@@ -137,8 +143,8 @@ entry* get_first(const entry_list* el) {
     return (*el)->dummy->next;
 }
 
-entry* get_next(const entry_list* el, const entry* e) {
-    if (*el == NULL || *e == NULL) {
+entry* get_next(const entry_list* el, const entry e) {
+    if (*el == NULL || e == NULL) {
         printf("Given arguments must not be null\n");
         return NULL;
     }
@@ -152,7 +158,7 @@ entry* get_next(const entry_list* el, const entry* e) {
 
     int found = 0;
     while (!found && temp->next != LIST_EOF) {
-        if (temp == *e) {
+        if (temp == e) {
             found = 1;
             return temp->next;
         }
