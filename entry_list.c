@@ -4,6 +4,8 @@
 #include "interface.h"
 #include "core.h"
 
+#define _DEBUG_ 1
+
 ErrorCode create_entry(const char* w, entry* e) {
     if (w == NULL) {
         printf("Given word is empty\n");
@@ -43,12 +45,8 @@ ErrorCode destroy_entry(entry *e) {
     }
 
     free((*e)->word);
-    free((*e)->payload);
-    free((*e));
-    if ((*e) != NULL) {
-        printf("Given entry was not successully destroyed\n");
-        return EC_FAIL;
-    }
+    // free((*e)->payload);
+    free(*e);
 
     return EC_SUCCESS;
 }
@@ -63,12 +61,9 @@ ErrorCode create_entry_list(entry_list* el) {
 
     // Create dummy entry (virtual entry that will point to the first entry)
     create_entry("dummy", &(newEntryList->dummy));
-    newEntryList->last = newEntryList->dummy;
 
     // Initialize entry_list members
-    // newEntryList->dummy = LIST_BOF;
-    newEntryList->last = LIST_EOF;
-    // newEntryList->dummy->next = newEntryList->last;
+    newEntryList->last = newEntryList->dummy;
     newEntryList->size = 0;
 
     *el = newEntryList;
@@ -109,7 +104,7 @@ ErrorCode add_entry(entry_list* el, const entry e) {
     // new_entry->payload = e->payload;
 
     // this entry will be added to the end of list, so it doesn't have next entry
-    // new_entry->next = LIST_EOF;
+    new_entry->next = NULL;
 
     // Check if this is the first entry of entry_list
     if((*el)->size == 0) {
@@ -148,13 +143,13 @@ entry get_next(const entry_list* el, const entry e) {
 
     if ((*el)->size == 0) {
         printf("Entry list is empty\n");
-        return (*el)->last;
+        return NULL;
     }
 
-    entry temp = (*el)->dummy->next;
+    entry temp = get_first(el);
 
     int found = 0;
-    while (!found && temp->next != LIST_EOF) {
+    while (!found && temp->next != NULL) {
         if (temp == e) {
             found = 1;
             return temp->next;
@@ -175,15 +170,36 @@ ErrorCode destroy_entry_list(entry_list* el) {
 
     entry next;
     entry temp = get_first(el);
-    while (temp != LIST_EOF) {
+    if (temp == NULL) {
+        printf("Error getting first entry\n");
+        return EC_FAIL;
+    }
+
+    ErrorCode return_code;
+
+    while (temp != NULL) {
+        #ifdef _DEBUG_
+        printf("---Trying to destroy entry with word:%s\n",temp->word);
+        #endif
+        return_code = destroy_entry(&temp);
+        if (return_code != EC_SUCCESS) {
+            return EC_FAIL;
+        }
+        #ifdef _DEBUG_
+        printf("---Entry destroyed\n");
+        #endif
         next = get_next(el, temp);
-        destroy_entry(&temp);
+
         (*el)->size--;
-        printf("Current number of entries in entry list:%d\n", (*el)->size);
+        #ifdef _DEBUG_
+        printf("---Current number of entries in entry list:%d\n\n", (*el)->size);
+        #endif
         temp = next;
     }
+
+    free((*el)->dummy);
     
-    free((*el));
+    free(*el);
 
     return EC_SUCCESS;
 }
