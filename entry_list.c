@@ -181,6 +181,7 @@ ErrorCode destroy_entry_list(entry_list* el) {
         #ifdef _DEBUG_
         printf("---Trying to destroy entry with word:%s\n",temp->word);
         #endif
+        next = get_next(el, temp);
         return_code = destroy_entry(&temp);
         if (return_code != EC_SUCCESS) {
             return EC_FAIL;
@@ -188,7 +189,6 @@ ErrorCode destroy_entry_list(entry_list* el) {
         #ifdef _DEBUG_
         printf("---Entry destroyed\n");
         #endif
-        next = get_next(el, temp);
 
         (*el)->size--;
         #ifdef _DEBUG_
