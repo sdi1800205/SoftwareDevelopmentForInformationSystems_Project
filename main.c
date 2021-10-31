@@ -25,7 +25,7 @@ int main(void) {
     }
 
     // Create entry list
-    entry_list EntryList;
+    entry_list* EntryList;
     return_code = create_entry_list(&EntryList);
     if (return_code != EC_SUCCESS) {
         printf("Error while creating entry list\n");
@@ -46,7 +46,7 @@ int main(void) {
         }
 
         // Create new entry with given word
-        entry new_entry;
+        entry* new_entry;
         return_code = create_entry(word, &new_entry);
         if(return_code != EC_SUCCESS){
             printf("Error while creating new entry\n");
@@ -58,7 +58,7 @@ int main(void) {
         #endif
 
         // Add entry to entry_list
-        return_code = add_entry(&EntryList, new_entry);
+        return_code = add_entry(EntryList, new_entry);
         if (return_code != EC_SUCCESS) {
             printf("Error while adding new entry to entry_list");
             return -1;
@@ -74,7 +74,7 @@ int main(void) {
     printf("---Total number of entries: %d\n\n", get_number_entries(EntryList));
     #endif
 
-    return_code = destroy_entry_list(&EntryList);
+    return_code = destroy_entry_list(EntryList);
     if (return_code != EC_SUCCESS) {
         printf("Error while destroying entry list\n");
         return -1;

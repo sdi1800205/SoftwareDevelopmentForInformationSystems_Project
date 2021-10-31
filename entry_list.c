@@ -6,14 +6,14 @@
 
 #define _DEBUG_ 1
 
-ErrorCode create_entry(const char* w, entry* e) {
+ErrorCode create_entry(const word w, entry** e) {
     if (w == NULL) {
         printf("Given word is empty\n");
         return EC_FAIL;
     }
 
     // allocate memory for the new entry
-    entry newEntry = malloc(sizeof(struct entry));
+    entry* newEntry = malloc(sizeof(entry));
     if (newEntry == NULL) {
         return EC_NO_AVAIL_RES;
     }
@@ -39,21 +39,21 @@ ErrorCode create_entry(const char* w, entry* e) {
 }
 
 ErrorCode destroy_entry(entry *e) {
-    if (*e == NULL) {
+    if (e == NULL) {
         printf("Given entry is already null");
         return EC_FAIL;
     }
 
-    free((*e)->word);
+    free(e->word);
     // free((*e)->payload);
-    free(*e);
+    free(e);
 
     return EC_SUCCESS;
 }
 
-ErrorCode create_entry_list(entry_list* el) {
+ErrorCode create_entry_list(entry_list** el) {
     // Allocate entry_list memory
-    entry_list newEntryList = malloc(sizeof(struct entry_list));
+    entry_list* newEntryList = malloc(sizeof(entry_list));
     if(newEntryList == NULL) {
         printf("Error while allocating entry list memory\n");
         return EC_NO_AVAIL_RES;
@@ -71,7 +71,7 @@ ErrorCode create_entry_list(entry_list* el) {
     return EC_SUCCESS;
 }
 
-unsigned int get_number_entries(const entry_list el) {
+unsigned int get_number_entries(const entry_list* el) {
     if (el == NULL) {
         printf("Entry is list not initialized\n");
         return 0;
@@ -80,14 +80,14 @@ unsigned int get_number_entries(const entry_list el) {
     return el->size;
 }
 
-ErrorCode add_entry(entry_list* el, const entry e) {
-    if (*el == NULL || e == NULL) {
+ErrorCode add_entry(entry_list* el, const entry* e) {
+    if (el == NULL || e == NULL) {
         printf("Given parameters are null\n");
         return EC_FAIL;
     }
 
     // Allocate memory for the new entry
-    entry new_entry = malloc(sizeof(struct entry));
+    entry* new_entry = malloc(sizeof(entry));
     if (new_entry == NULL) {
         printf("Error while allocating memory\n");
         return EC_FAIL;
@@ -107,46 +107,46 @@ ErrorCode add_entry(entry_list* el, const entry e) {
     new_entry->next = NULL;
 
     // Check if this is the first entry of entry_list
-    if((*el)->size == 0) {
-        (*el)->dummy->next = new_entry;
-        (*el)->last = new_entry;
+    if(el->size == 0) {
+        el->dummy->next = new_entry;
+        el->last = new_entry;
     }
     else {
         // set the last entry of entry list as this node
-        (*el)->last->next = new_entry;
-        (*el)->last = new_entry;
+        el->last->next = new_entry;
+        el->last = new_entry;
     }
     
-    (*el)->size++;
+    el->size++;
 
     return EC_SUCCESS;
 }
 
-entry get_first(const entry_list* el) {
-    if (*el == NULL) {
+entry* get_first(const entry_list* el) {
+    if (el == NULL) {
         printf("Entry list is not initialized\n");
         return NULL;
     }
 
-    if ((*el)->size == 0) {
+    if (el->size == 0) {
         printf("Entry list is empty\n");
         return NULL;
     }
-    return (*el)->dummy->next;
+    return el->dummy->next;
 }
 
-entry get_next(const entry_list* el, const entry e) {
-    if (*el == NULL || e == NULL) {
+entry* get_next(const entry_list* el, const entry* e) {
+    if (el == NULL || e == NULL) {
         printf("Given arguments must not be null\n");
         return NULL;
     }
 
-    if ((*el)->size == 0) {
+    if (el->size == 0) {
         printf("Entry list is empty\n");
         return NULL;
     }
 
-    entry temp = get_first(el);
+    entry* temp = get_first(el);
 
     int found = 0;
     while (!found && temp->next != NULL) {
@@ -163,13 +163,13 @@ entry get_next(const entry_list* el, const entry e) {
 }
 
 ErrorCode destroy_entry_list(entry_list* el) {
-    if (*el == NULL) {
+    if (el == NULL) {
         printf("Entry list is not initialized\n");
         return EC_FAIL;
     }
 
-    entry next;
-    entry temp = get_first(el);
+    entry* next;
+    entry* temp = get_first(el);
     if (temp == NULL) {
         printf("Error getting first entry\n");
         return EC_FAIL;
@@ -182,7 +182,7 @@ ErrorCode destroy_entry_list(entry_list* el) {
         printf("---Trying to destroy entry with word:%s\n",temp->word);
         #endif
         next = get_next(el, temp);
-        return_code = destroy_entry(&temp);
+        return_code = destroy_entry(temp);
         if (return_code != EC_SUCCESS) {
             return EC_FAIL;
         }
@@ -190,16 +190,16 @@ ErrorCode destroy_entry_list(entry_list* el) {
         printf("---Entry destroyed\n");
         #endif
 
-        (*el)->size--;
+        el->size--;
         #ifdef _DEBUG_
-        printf("---Current number of entries in entry list:%d\n\n", (*el)->size);
+        printf("---Current number of entries in entry list:%d\n\n", el->size);
         #endif
         temp = next;
     }
 
-    free((*el)->dummy);
+    free(el->dummy);
     
-    free(*el);
+    free(el);
 
     return EC_SUCCESS;
 }
