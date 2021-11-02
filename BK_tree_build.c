@@ -19,49 +19,54 @@ enum error_code build_entry_index(const entry_ist* el, enum match_type type, ind
 
 	for(unsigned int i = 1; i < el_count; i++){
 		err = BK_insert_entry(get_next(el),ix,type);
-		if(err != 0 )
+		if(err != EC_SUCCESS )
 			return err;
 	}
 }
-///////////
 
-typedef struct BK_child BK_child;
-
-typedef struct BK_node
-{
-	entry *centry;
-	BK_child *children;
-}BK_node;
-
-struct BK_child
-{
-	BK_node *node;
-	int distance;
-	BK_child *next;
-};
-
-///////////
 enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type){
-	int dist;
-	BK_child *tmp_child;
+	unsigned int dist = 0;
 
 	if(tree == NULL){
-		return 1;
+		return EC_FAIL;
 	}else if(tree->children == NULL){
-		tree->children = (BK_child *)malloc(sizeof(BK_child));
-		tree->children->node = (BK_node *)malloc(sizeof(BK_node));
-		tree->children->node->children = NULL;
-		tree->children->node->centry = input;
-		tree->children->distance = get_distance(tree->centry,input,type);
-		tree->children->next = NULL;
-	}else{ 
-		if(){
-		
+		tree->children = (BK_node **)malloc(MAX_WORD_LENGTH*sizeof(BK_node *))
+		for(int i=0; i < MAX_WORD_LENGTH; i++){
+			(tree->children)[i] = NULL;
+		}
+		dist = get_distance(input,tree->centry,type) - 1;
+		(tree->children)[dist] = (BK_node *)malloc(sizeof(BK_node));
+		(tree->children)[dist]->centry = input;
+		(tree->children)[dist]->children = NULL;
+	}else{
+		dist = get_distance(input,tree->centry,type) - 1;
+		if((tree->children)[dist] != NULL){
+			return BK_insert_entry(input,(tree->children)[dist],type);
+		}else{
+			(tree->children)[dist] = (BK_node *)malloc(sizeof(BK_node));
+			(tree->children)[dist]->centry = input;
+			(tree->children)[dist]->children = NULL;
 		}
 	}
+	return EC_SUCCESS;
 }
 
+enum error_code BK_destroy_entry(BK_node **tree){
+	if(*tree == NULL){
+		return EC_SUCCESS;
+	}else if((*tree)->children == NULL){
+		free(*tree);
+		*tree = NULL;
+	}else{
+		for(int i = 0; i<MAX_WORD_LENGTH; i++){
+			BK_destroy_entry(&(((*tree)->children)[i]));
+		}
+		free((*tree)->children);
+		free(*tree;)
+	}
+	return EC_SUCCESS;
 
+}
 
 int main(int argc,char *argv[]){
 
