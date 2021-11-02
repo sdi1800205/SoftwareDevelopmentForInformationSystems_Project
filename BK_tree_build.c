@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "BK_tree_build.h"
+#include "interface.h"
 
 enum error_code build_entry_index(const entry_ist* el, enum match_type type, index* ix){
 	unsigned int el_count = get_number_entries(el);
@@ -62,7 +63,7 @@ enum error_code BK_destroy_entry(BK_node **tree){
 			BK_destroy_entry(&(((*tree)->children)[i]));
 		}
 		free((*tree)->children);
-		free(*tree;)
+		free(*tree);
 	}
 	return EC_SUCCESS;
 
