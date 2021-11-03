@@ -28,11 +28,12 @@ static index* create_index(MatchType type) {
 	return indx;
 }
 
-// creates a BK_node and initialized with an entry and no children
+// creates a BK_node and initialized with an entry and an array for the children with size: MAX_WORD_LENGTH
+// because this is the max size of a word, therefore the max possible number of differences between the words
 static BK_node* create_BK_node(entry* entr) {
 	BK_node* node = malloc(sizeof(BK_node));
 	node->centry = entr;
-	node->children = NULL;
+	node->children = malloc(MAX_WORD_LENGTH * sizeof(BK_node*));
 	return node;
 }
 
