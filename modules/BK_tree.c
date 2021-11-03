@@ -21,8 +21,8 @@ struct BK_node {
 /////////// functions that help with implementation ///////////
 
 // creates a BK_tree/index and initialize with no root and the Matchtype of the words
-static index* create_index(MatchType type) {
-	index* indx = malloc(sizeof(index));
+static Index* create_index(MatchType type) {
+	Index* indx = malloc(sizeof(Index));
 	indx->root = NULL;
 	indx->match_type = type;
 	return indx;
@@ -37,8 +37,34 @@ static BK_node* create_BK_node(entry* entr) {
 	return node;
 }
 
-static int find_distance_entries(entry* a, entry* b) {
-	// Προς υλοποίηση
+// function that finds the MT_HAMMING_DIST distance between 2 words of 2 entries
+static int find_distance_entries_HAM(entry* a, entry* b) {
+	char a_char = a->word;
+	char b_char = b->word;
+	int diff = 0;	// number of differences
+
+	// check all the characters until one or both words end
+	while (a_char != '\0' && b_char !='\0') {
+		if (a_char != b_char)	// if the characters are different, add one more to the difference number value
+			diff++;
+		a_char++;
+		b_char++;
+	}
+	// if word a ends first, add the number of the rest characters of word b in total differences
+	if (a_char == '\0' && b_char != '\0') {
+		while (b_char != '\0') {
+			diff++;
+			b_char++;
+		}
+	}
+	// if word b ends first, add the number of the rest characters of word a in total differences
+	else if (b_char == '\0' && a_char != '\0') {
+		while (a_char != '\0') {
+			diff++;
+			a_char++;
+		}
+	}
+	return diff;
 }
 
 /*
@@ -50,7 +76,7 @@ static int find_distance_words(word a, word b) {
 ////////// functions of BK_tree.h //////////////
 
 
-enum error_code build_entry_index(const entry_list* el, enum match_type type, index* indx){
+enum error_code build_entry_index(const entry_list* el, enum match_type type, Index* indx){
 	unsigned int el_count = get_number_entries(el);		// get size of entry list
 	if (el_count <= 0) {		// etries do not exists
 		printf("Error in build_entry_index: Input entry_list is empty\n");
@@ -74,7 +100,7 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, in
 //////////////////////////////////////////////////
 // Απο δω και κάτω δεν έχω κοιτάξει ακόμα
 //////////////////////////////////////////////////
-
+/*
 enum error_code BK_insert_entry(entry *input, BK_node *tree, enum match_type type){
 	unsigned int dist = 0;
 
@@ -118,3 +144,5 @@ enum error_code BK_destroy_entry(BK_node **tree){
 	return EC_SUCCESS;
 
 }
+
+*/
