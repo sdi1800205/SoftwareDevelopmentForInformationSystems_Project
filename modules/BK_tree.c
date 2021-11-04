@@ -39,27 +39,27 @@ static BK_node* create_BK_node(entry* entr) {
 
 // function that finds the MT_HAMMING_DIST distance between 2 words of 2 entries
 static int find_distance_entries_HAM(entry* a, entry* b) {
-	char a_char = a->word;
-	char b_char = b->word;
+	char* a_char = a->word;
+	char* b_char = b->word;
 	int diff = 0;	// number of differences
 
 	// check all the characters until one or both words end
-	while (a_char != '\0' && b_char !='\0') {
-		if (a_char != b_char)	// if the characters are different, add one more to the difference number value
+	while (*a_char != '\0' && *b_char !='\0') {
+		if (*a_char != *b_char)	// if the characters are different, add one more to the difference number value
 			diff++;
 		a_char++;
 		b_char++;
 	}
 	// if word a ends first, add the number of the rest characters of word b in total differences
-	if (a_char == '\0' && b_char != '\0') {
-		while (b_char != '\0') {
+	if (*a_char == '\0' && *b_char != '\0') {
+		while (*b_char != '\0') {
 			diff++;
 			b_char++;
 		}
 	}
 	// if word b ends first, add the number of the rest characters of word a in total differences
-	else if (b_char == '\0' && a_char != '\0') {
-		while (a_char != '\0') {
+	else if (*b_char == '\0' && *a_char != '\0') {
+		while (*a_char != '\0') {
 			diff++;
 			a_char++;
 		}
@@ -67,23 +67,18 @@ static int find_distance_entries_HAM(entry* a, entry* b) {
 	return diff;
 }
 
-/*
-static int find_distance_words(word a, word b) {
-
-}
-*/
 
 ////////// functions of BK_tree.h //////////////
 
 
-enum error_code build_entry_index(const entry_list* el, enum match_type type, Index* indx){
+ErrorCode build_entry_index(const entry_list* el, MatchType type, Index* indx){
 	unsigned int el_count = get_number_entries(el);		// get size of entry list
 	if (el_count <= 0) {		// etries do not exists
 		printf("Error in build_entry_index: Input entry_list is empty\n");
 		return 1;
 	}
 
-	enum error_code err;
+	ErrorCode err;
 	entry* entr = get_first(el);	// get first entry
 
 	indx = create_index(type);	// create the BK_tree
