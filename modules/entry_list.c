@@ -6,6 +6,22 @@
 
 #define _DEBUG_ 1
 
+struct entry
+{
+    entry* next;
+
+    word word;
+    void* payload;  
+};
+
+struct entry_list
+{
+    entry* dummy;    // virtual entry that points to the first entry
+    entry* last;
+    
+    int size;
+};
+
 ErrorCode create_entry(const word w, entry** e) {
     if (w == NULL) {
         printf("Given word is empty\n");

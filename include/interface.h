@@ -10,22 +10,6 @@ typedef struct entry_list entry_list;
 typedef struct entry entry;
 typedef char* word;
 
-struct entry
-{
-    entry* next;
-
-    word word;
-    void* payload;  
-};
-
-struct entry_list
-{
-    entry* dummy;    // virtual entry that points to the first entry
-    entry* last;
-    
-    int size;
-};
-
 ErrorCode create_entry(const word w, entry** e);
 ErrorCode destroy_entry(entry* e);
 ErrorCode create_entry_list(entry_list** el);

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "List.h"
 #include "interface.h"
 #include "BK_tree.h"
 
@@ -14,8 +16,24 @@ struct  BK_tree {
 
 struct BK_node {
 	entry *centry;
-	struct BK_node **children;
+	BK_list children;
 };
+
+// δομή λίστας για τα παιδιά της κάθε λέξης του BK_tree
+struct BK_list {
+	ListNode dummy;
+	ListNode last;
+
+	int size;
+};
+
+struct BK_list_node {
+	int dist;			// αριθμός απόστασης(διαφορετικών χαρακτήρων) του παιδιου από τον πατέρα κόμβο/λέξη
+
+	BK_node* node;		// δείκτης προς το παιδί
+	BK_listnode next;	// δείκτης προς τον κόμβο λίστας με το επόμενο επόμενο παιδί
+}
+
 
 
 /////////// functions that help with implementation ///////////
