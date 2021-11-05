@@ -9,6 +9,11 @@
 // pointer to function that finds the distance of 2 words of 2 entries
 typedef int (*DistanceFunc)(entry* a, entry* b);
 
+// δομές λίστας για τον κόμβο δέντρου
+typedef struct BK_list* BK_list;
+typedef struct BK_list_node* BK_listnode;
+
+
 struct  BK_tree {
     BK_node* root;		// root of tree/index
 	MatchType match_type;		// type that matches words
@@ -51,7 +56,7 @@ static Index* create_index(MatchType type) {
 static BK_node* create_BK_node(entry* entr) {
 	BK_node* node = malloc(sizeof(BK_node));
 	node->centry = entr;
-	node->children = malloc(MAX_WORD_LENGTH * sizeof(BK_node*));
+	node->children = NULL;
 	return node;
 }
 
