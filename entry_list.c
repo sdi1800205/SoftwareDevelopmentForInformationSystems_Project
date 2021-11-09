@@ -22,13 +22,6 @@ struct entry_list
     int size;
 };
 
-word get_entry_word(entry* e) {
-    if (e == NULL)
-        return NULL;
-        
-    return e->word;
-}
-
 ErrorCode create_entry(const word w, entry** e) {
     if (w == NULL) {
         printf("Given word is empty\n");
@@ -68,7 +61,7 @@ ErrorCode destroy_entry(entry *e) {
     }
 
     free(e->word);
-    // free((*e)->payload);
+    // free(e->payload);
     free(e);
 
     return EC_SUCCESS;
@@ -194,8 +187,16 @@ ErrorCode destroy_entry_list(entry_list* el) {
         temp = next;
     }
 
-    free(el->dummy);
+    destroy_entry(el->dummy);
     free(el);
 
     return EC_SUCCESS;
+}
+
+// Extra functions
+word get_entry_word(entry* e) {
+    if (e == NULL)
+        return NULL;
+        
+    return e->word;
 }
