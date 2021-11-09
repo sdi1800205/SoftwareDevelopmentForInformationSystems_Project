@@ -28,7 +28,7 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, in
 	for(unsigned int i = 1; i < el_count; i++){
 		entr = get_next(el, entr);		
 		err = BK_insert_entry(entr, ix->root, type);
-		if(err != EC_SUCCESS)
+		if (err != EC_SUCCESS)
 			return err;
 	}
 }

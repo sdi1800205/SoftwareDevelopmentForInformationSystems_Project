@@ -54,7 +54,7 @@ int main(void) {
         }
 
         #ifdef _DEBUG_
-        printf("---New entry created with word=%s\n", new_entry->word);
+        printf("---New entry created with word=%s\n", get_entry_word(new_entry));
         #endif
 
         // Add entry to entry_list
@@ -91,5 +91,5 @@ int main(void) {
 
     printf("---Program terminated successfully\n");
 
-    return 0;;
+    return 0;
 }

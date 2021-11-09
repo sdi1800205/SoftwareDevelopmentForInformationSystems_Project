@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "List.h"
 #include "interface.h"
 #include "BK_tree.h"
 
