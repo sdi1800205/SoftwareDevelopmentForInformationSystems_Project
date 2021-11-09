@@ -1,13 +1,17 @@
 #include "acutest.h"			// Απλή βιβλιοθήκη για unit testing
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "interface.h"
-// #include "BK_tree.h"
+#include "core.h"
 
-#define _DEBUG_ 1
+// #define _DEBUG_ 1
 
-void test_build_entry_index() {
-	FILE* fp;
+// this function reads a text of words and put them into an entry_list
+static entry_list* read_words() {
+    FILE* fp;
     char* word = NULL;
     size_t len = 0;
     ssize_t read;
@@ -15,22 +19,17 @@ void test_build_entry_index() {
     ErrorCode return_code;
 
     #ifdef _DEBUG_
-    printf("---In main..\n");
+    printf("\n---In test..\n");
     #endif
 
     // Open test file
-    fp = fopen("./tests/test.txt", "r");
-    if (fp == NULL) {
-        return;
-    }
+    fp = fopen("./test.txt", "r");
+    TEST_ASSERT(fp != NULL);
 
     // Create entry list
     entry_list* EntryList;
     return_code = create_entry_list(&EntryList);
-    if (return_code != EC_SUCCESS) {
-        printf("Error while creating entry list\n");
-        return;
-    }
+    TEST_ASSERT(return_code == EC_SUCCESS);
 
     #ifdef _DEBUG_
     printf("---Entry list created successfully\n\n");
@@ -48,10 +47,7 @@ void test_build_entry_index() {
         // Create new entry with given word
         entry* new_entry;
         return_code = create_entry(word, &new_entry);
-        if(return_code != EC_SUCCESS){
-            printf("Error while creating new entry\n");
-            return;
-        }
+        TEST_ASSERT(return_code == EC_SUCCESS);
 
         #ifdef _DEBUG_
         printf("---New entry created with word=%s\n", get_entry_word(new_entry));
@@ -59,10 +55,7 @@ void test_build_entry_index() {
 
         // Add entry to entry_list
         return_code = add_entry(EntryList, new_entry);
-        if (return_code != EC_SUCCESS) {
-            printf("Error while adding new entry to entry_list");
-            return;
-        }
+        TEST_ASSERT(return_code == EC_SUCCESS);
 
         #ifdef _DEBUG_
         printf("---Entry added to entry_list\n");
@@ -70,33 +63,40 @@ void test_build_entry_index() {
         #endif
     }
 
-    #ifdef _DEBUG_
-    printf("---Total number of entries: %d\n\n", get_number_entries(EntryList));
-    #endif
-
-    return_code = destroy_entry_list(EntryList);
-    if (return_code != EC_SUCCESS) {
-        printf("Error while destroying entry list\n");
-        return;
-    }
-
-    #ifdef _DEBUG_
-    printf("---Entry list destroyed\n");
-    #endif
-
     fclose(fp);
     if (word) {
         free(word);
     }
 
-    printf("---Program terminated successfully\n");
-
-    return;
+    return EntryList;
 }
+
+void test_entry_list() {
+    entry_list* EntryList = read_words();
+
+    #ifdef _DEBUG_
+    printf("---Total number of entries: %d\n\n", get_number_entries(EntryList));
+    #endif
+
+    ErrorCode return_code = destroy_entry_list(EntryList);
+    TEST_ASSERT(return_code == EC_SUCCESS);
+
+    #ifdef _DEBUG_
+    printf("---Entry list destroyed\n");
+    printf("---Program terminated successfully\n");
+    #endif
+}
+
+// void test_build_entry_index() {
+//     entry_list* entrylist;
+//     ErrorCode err = create_entry_list(&entrylist);
+
+// }
 
 // Λίστα με όλα τα tests προς εκτέλεση
 TEST_LIST = {
-	{ "test_build_entry_index", test_build_entry_index },
+	{ "test_entry_list", test_entry_list },
+	// { "test_build_entry_index", test_build_entry_index },
 
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 };
