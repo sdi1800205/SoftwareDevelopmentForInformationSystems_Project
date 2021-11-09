@@ -22,13 +22,6 @@ struct entry_list
     int size;
 };
 
-word get_entry_word(entry* e) {
-    if (e == NULL)
-        return NULL;
-        
-    return e->word;
-}
-
 ErrorCode create_entry(const word w, entry** e) {
     if (w == NULL) {
         printf("Given word is empty\n");
@@ -129,17 +122,10 @@ ErrorCode add_entry(entry_list* el, const entry* e) {
     // this entry will be added to the end of list, so it doesn't have next entry
     new_entry->next = NULL;
 
-    // Check if this is the first entry of entry_list
-    if(el->size == 0) {
-        el->dummy->next = new_entry;
-        el->last = new_entry;
-    }
-    else {
-        // set the last entry of entry list as this node
-        el->last->next = new_entry;
-        el->last = new_entry;
-    }
-    
+    // set the last entry of entry list as this node
+    el->last->next = new_entry;
+    el->last = new_entry;
+
     el->size++;
 
     return EC_SUCCESS;
@@ -169,20 +155,7 @@ entry* get_next(const entry_list* el, const entry* e) {
         return NULL;
     }
 
-    entry* temp = get_first(el);
-
-    int found = 0;
-    while (!found && temp->next != NULL) {
-        if (temp == e) {
-            found = 1;
-            return temp->next;
-        }
-        else {
-            temp = temp->next;
-        }
-    }
-
-    return NULL;
+    return e->next;
 }
 
 ErrorCode destroy_entry_list(entry_list* el) {
@@ -225,4 +198,13 @@ ErrorCode destroy_entry_list(entry_list* el) {
     free(el);
 
     return EC_SUCCESS;
+}
+
+// Extra functions
+
+word get_entry_word(entry* e) {
+    if (e == NULL)
+        return NULL;
+        
+    return e->word;
 }
