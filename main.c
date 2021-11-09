@@ -89,7 +89,9 @@ int main(void) {
 
     free(line);
 
+    #ifdef _DEBUG_
     printf("---Program terminated successfully\n");
-
+    #endif
+    
     return 0;
 }

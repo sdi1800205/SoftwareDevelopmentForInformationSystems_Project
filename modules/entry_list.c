@@ -35,14 +35,16 @@ ErrorCode create_entry(const word w, entry** e) {
     }
 
     //allocate memory for the word
-    newEntry->word = malloc((strlen(w)+1)*sizeof(*w));
+    newEntry->word = malloc((strlen(w))*sizeof(char));
     if (newEntry->word == NULL){
         printf("Error while allocating memory\n");
         return EC_NO_AVAIL_RES;
     }
 
     // copy the given word into newEntry->word
-    strcpy(newEntry->word, w);
+    // strcpy(newEntry->word, w);
+    strncpy(newEntry->word, w, strlen(w)-1);
+	newEntry->word[strlen(w)-1]='\0';
 
     // set everything else to null
     newEntry->payload = NULL;
@@ -61,7 +63,7 @@ ErrorCode destroy_entry(entry *e) {
     }
 
     free(e->word);
-    // free((*e)->payload);
+    // free(e->payload);
     free(e);
 
     return EC_SUCCESS;
@@ -102,29 +104,9 @@ ErrorCode add_entry(entry_list* el, const entry* e) {
         return EC_FAIL;
     }
 
-    // Allocate memory for the new entry
-    entry* new_entry = malloc(sizeof(entry));
-    if (new_entry == NULL) {
-        printf("Error while allocating memory\n");
-        return EC_FAIL;
-    }
-
-    // Copy the values of given entry to the new entry
-
-    new_entry->word = malloc(strlen((e->word)+1)*sizeof(char));
-    if (new_entry->word == NULL) {
-        printf("Error while allocating memory\n");
-        return EC_FAIL;
-    }
-    strcpy(new_entry->word, e->word);
-    // new_entry->payload = e->payload;
-
-    // this entry will be added to the end of list, so it doesn't have next entry
-    new_entry->next = NULL;
-
     // set the last entry of entry list as this node
-    el->last->next = new_entry;
-    el->last = new_entry;    
+    el->last->next = (entry*)e;
+    el->last = (entry*)e;
     el->size++;
 
     return EC_SUCCESS;
