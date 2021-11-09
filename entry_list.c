@@ -150,11 +150,6 @@ entry* get_next(const entry_list* el, const entry* e) {
         return NULL;
     }
 
-    if (el->size == 0) {
-        printf("Entry list is empty\n");
-        return NULL;
-    }
-
     return e->next;
 }
 
