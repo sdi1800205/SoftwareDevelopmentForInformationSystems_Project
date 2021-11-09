@@ -9,7 +9,7 @@ CC = gcc
 CFLAGS = -Wall -Werror -g -I$(INCLUDE)
 
 # Αρχεία .o
-OBJS = BK_tree_test.o  $(MODULES)/entry_list.o
+OBJS = BK_tree_test.o $(MODULES)/BK_tree.o $(MODULES)/BK_List.o $(MODULES)/entry_list.o
 
 # Το εκτελέσιμο πρόγραμμα
 EXEC = BK_tree_test
