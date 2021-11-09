@@ -22,6 +22,13 @@ struct entry_list
     int size;
 };
 
+word get_entry_word(entry* e) {
+    if (e == NULL)
+        return NULL;
+        
+    return e->word;
+}
+
 ErrorCode create_entry(const word w, entry** e) {
     if (w == NULL) {
         printf("Given word is empty\n");

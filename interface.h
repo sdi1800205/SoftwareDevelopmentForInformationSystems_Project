@@ -19,4 +19,7 @@ entry* get_first(const entry_list* el);
 entry* get_next(const entry_list* el, const entry* e);
 ErrorCode destroy_entry_list(entry_list* el);
 
+// Extra functions
+word get_entry_word(entry* e);
+
 #endif //__ENTRY_H_
