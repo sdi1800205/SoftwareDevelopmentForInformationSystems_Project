@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "interface.h"
+#include "BK_tree.h"
 #include "core.h"
 
 // #define _DEBUG_ 1
@@ -87,16 +88,19 @@ void test_entry_list() {
     #endif
 }
 
-// void test_build_entry_index() {
-//     entry_list* entrylist;
-//     ErrorCode err = create_entry_list(&entrylist);
-
-// }
+void test_build_entry_index() {
+    entry_list* EntryList = read_words();
+    Index* indx;
+    ErrorCode err = build_entry_index(EntryList, MT_HAMMING_DIST, &indx);
+    TEST_ASSERT(err == EC_SUCCESS);
+    err = destroy_entry_index(indx);
+    TEST_ASSERT(err == EC_SUCCESS);
+}
 
 // Λίστα με όλα τα tests προς εκτέλεση
 TEST_LIST = {
 	{ "test_entry_list", test_entry_list },
-	// { "test_build_entry_index", test_build_entry_index },
+	{ "test_build_entry_index", test_build_entry_index },
 
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 };
