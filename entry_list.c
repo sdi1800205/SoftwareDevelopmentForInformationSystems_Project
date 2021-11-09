@@ -111,12 +111,13 @@ ErrorCode add_entry(entry_list* el, const entry* e) {
 
     // Copy the values of given entry to the new entry
 
-    new_entry->word = malloc(strlen((e->word)+1)*sizeof(char));
+    new_entry->word = malloc(strlen((e->word))*sizeof(char));
     if (new_entry->word == NULL) {
         printf("Error while allocating memory\n");
         return EC_FAIL;
     }
-    strcpy(new_entry->word, e->word);
+    // strcpy(new_entry->word, e->word);
+    strncpy(new_entry->word, e->word, strlen(e->word));
     // new_entry->payload = e->payload;
 
     // this entry will be added to the end of list, so it doesn't have next entry

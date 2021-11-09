@@ -8,7 +8,7 @@
 
 int main(void) {
     FILE* fp;
-    char* word = NULL;
+    char* line = NULL;
     size_t len = 0;
     ssize_t read;
 
@@ -37,17 +37,18 @@ int main(void) {
     #endif
 
     // Read line by line the file. Each line has a word
-    while ((read = getline(&word, &len, fp)) != -1) {
+    while ((read = getline(&line, &len, fp)) != -1) {
+    // while (fgets(line, bufferLength, filePointer)) {
         // printf("Retrieved line of length %zu:\n", read);
 
         // Remove newline character if exists in word
-        if (word[strlen(word)-1] == '\n') {
-            word[strlen(word)-1] = '\0';
+        if (line[strlen(line)-1] == '\n') {
+            line[strlen(line)-1] = '\0';
         }
 
         // Create new entry with given word
         entry* new_entry;
-        return_code = create_entry(word, &new_entry);
+        return_code = create_entry(line, &new_entry);
         if(return_code != EC_SUCCESS){
             printf("Error while creating new entry\n");
             return -1;
@@ -85,9 +86,8 @@ int main(void) {
     #endif
 
     fclose(fp);
-    if (word) {
-        free(word);
-    }
+
+    free(line);
 
     printf("---Program terminated successfully\n");
 

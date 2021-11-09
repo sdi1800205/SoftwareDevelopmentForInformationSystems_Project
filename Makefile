@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-I. -g
 DEPS = interface.h core.h
 OBJ = main.o entry_list.o
 EXEC = main
