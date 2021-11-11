@@ -28,7 +28,7 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, in
 	for(unsigned int i = 1; i < el_count; i++){
 		entr = get_next(el, entr);		
 		err = BK_insert_entry(entr, ix->root, type);
-		if (err != EC_SUCCESS)
+		if(err != EC_SUCCESS)
 			return err;
 	}
 }
@@ -37,9 +37,9 @@ enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type)
 	int dist;
 	BK_child *tmp_child;
 
-	if(tree == NULL){
+	if(tree == NULL){		//non existent tree
 		return EC_FAIL;
-	}else if(tree->children == NULL){
+	}else if(tree->children == NULL){		//current tree node has no child nodes
 		tree->children = (BK_child *)malloc(sizeof(BK_child));
 		tree->children->node = (BK_node *)malloc(sizeof(BK_node));
 		tree->children->node->children = NULL;
@@ -47,25 +47,25 @@ enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type)
 		tree->children->distance = get_distance(tree->centry,input,type);
 		tree->children->next = NULL;
 	}else{
-		dist = get_distance(tree->centry,input,type);
-		if(dist < tree->children->distance){
-			tmp_child = (BK_child *)malloc(sizeof(BK_child));
+		dist = get_distance(tree->centry,input,type);	//get the distance between the input word and the word of the current node
+		if(dist < tree->children->distance){		//if this distance is smaller than the distance between the first child node and the current node
+			tmp_child = (BK_child *)malloc(sizeof(BK_child));		//insert child in the start of the list
 			tmp_child->node = (BK_node *)malloc(sizeof(BK_node));
 			tmp_child->node->children = NULL;
 			tmp_child->node->centry = input;
 			tmp_child->distance = dist;
 			tmp_child->next = tree->children;
 			tree->children = tmp_child;		
-		}else if(dist == tree->children->distance){
+		}else if(dist == tree->children->distance){		//if it's equal the latter distance move deeper into the tree
 			return BK_insert_entry(input,tree->children,type);
 		}else{
 			BK_child *new_node;
 			tmp_child = tree->children;
-			while(tmp_child->next !=NULL && dist > tmp_child->next->distance){
+			while(tmp_child->next !=NULL && dist > tmp_child->next->distance){		//find the right position in the list to insert the new child node (sorted list)
 				tmp_child = tmp_child->next;
 			}
 
-			if(tmp_child->next == NULL && dist > tmp_child->distance){
+			if(tmp_child->next == NULL && dist > tmp_child->distance){		//if we've reached the end of the list and the input word distance is greater than the word of the last child node
 				new_node = (BK_child *)malloc(sizeof(BK_child));
 				new_node->node = (BK_node *)malloc(sizeof(BK_node));
 				new_node->node->children = NULL;
@@ -74,9 +74,9 @@ enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type)
 				new_node->next = NULL;
 
 				tmp_child->next = new_node;
-			}else if(dist == tmp_child->next->distance){
+			}else if(dist == tmp_child->next->distance){			//if it's equal to the child node move deeper
 				return BK_insert_entry(input,tmp_child->next->node,type);
-			}else if(dist < tmp_child->next->distance){
+			}else if(dist < tmp_child->next->distance){			//if we've reached the right position (current child node distance < input word distance < next child node distance)
 				new_node = (BK_child *)malloc(sizeof(BK_child));
 				new_node->node = (BK_node *)malloc(sizeof(BK_node));
 				new_node->node->children = NULL;
