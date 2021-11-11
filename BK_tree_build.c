@@ -5,14 +5,45 @@
 #include "interface.h"
 
 
-static index* create_index(enum match_type type){
-	index* ix = malloc(sizeof(index));
+static Index* create_index(MatchType type){
+	Index* ix = malloc(sizeof(Index));
 	ix->root = NULL;
 	ix->match_type = type;
 	return ix;
 }
 
-enum error_code build_entry_index(const entry_list* el, enum match_type type, index* ix){
+static int find_distance_entries(entry* a, entry* b, MatchType type) {
+	char* a_char = get_entry_word(a);
+	char* b_char = get_entry_word(b);
+	int diff = 0;	// number of differences
+
+	if (type == MT_HAMMING_DIST) {
+		// check all the characters until one or both words end
+		while (*a_char != '\0' && *b_char !='\0') {
+			if (*a_char != *b_char)	// if the characters are different, add one more to the difference number value
+				diff++;
+			a_char++;
+			b_char++;
+		}
+		// if word a ends first, add the number of the rest characters of word b in total differences
+		if (*a_char == '\0' && *b_char != '\0') {
+			while (*b_char != '\0') {
+				diff++;
+				b_char++;
+			}
+		}
+		// if word b ends first, add the number of the rest characters of word a in total differences
+		else if (*b_char == '\0' && *a_char != '\0') {
+			while (*a_char != '\0') {
+				diff++;
+				a_char++;
+			}
+		}
+	}
+	return diff;
+}
+
+ErrorCode build_entry_index(const entry_list* el, MatchType type, Index* ix){
 	unsigned int el_count = get_number_entries(el);		// get size of entry list
 	if (el_count <= 0) {		// etries do not exists
 		printf("Error in build_entry_index: Input entry_list is empty\n");
@@ -33,7 +64,7 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, in
 	}
 }
 
-enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type){
+static ErrorCode BK_insert_entry(entry *input,BK_node *tree,MatchType type){
 	int dist;
 	BK_child *tmp_child;
 
@@ -44,10 +75,10 @@ enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type)
 		tree->children->node = (BK_node *)malloc(sizeof(BK_node));
 		tree->children->node->children = NULL;
 		tree->children->node->centry = input;
-		tree->children->distance = get_distance(tree->centry,input,type);
+		tree->children->distance = find_distance_entries(tree->centry,input,type);
 		tree->children->next = NULL;
 	}else{
-		dist = get_distance(tree->centry,input,type);	//get the distance between the input word and the word of the current node
+		dist = find_distance_entries(tree->centry,input,type);	//get the distance between the input word and the word of the current node
 		if(dist < tree->children->distance){		//if this distance is smaller than the distance between the first child node and the current node
 			tmp_child = (BK_child *)malloc(sizeof(BK_child));		//insert child in the start of the list
 			tmp_child->node = (BK_node *)malloc(sizeof(BK_node));
@@ -91,14 +122,14 @@ enum error_code BK_insert_entry(entry *input,BK_node *tree,enum match_type type)
 	return EC_SUCCESS;
 }
 
-enum error_code destroy_entry_index(index* ix){
-	enum error_code err;
+ErrorCode destroy_entry_index(Index* ix){
+	ErrorCode err;
 	err = BK_destroy_entry(&(ix->root));
 	free(ix);
 	return err;
 }
 
-enum error_code BK_destroy_entry(BK_node **tree){
+static ErrorCode BK_destroy_entry(BK_node **tree){
 	BK_child *tmp_child;
 	if(*tree == NULL){
 		return EC_SUCCESS;
