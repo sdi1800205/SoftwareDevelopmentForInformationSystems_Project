@@ -1,8 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "BK_tree_build.h"
-#include "interface.h"
+#include "core.h"
+
+
+typedef struct BK_node BK_node;
+typedef struct BK_child BK_child;
+
+struct BK_node
+{
+	entry *centry;
+	BK_child *children;
+};
+
+struct BK_child
+{
+	BK_node *node;
+	int distance;
+	BK_child *next;
+};
+
+struct  BK_tree {
+    BK_node* root;		// root of tree/index
+	MatchType match_type;		// type that matches words
+};
 
 
 static Index* create_index(MatchType type){
@@ -41,27 +62,6 @@ static int find_distance_entries(entry* a, entry* b, MatchType type) {
 		}
 	}
 	return diff;
-}
-
-ErrorCode build_entry_index(const entry_list* el, MatchType type, Index* ix){
-	unsigned int el_count = get_number_entries(el);		// get size of entry list
-	if (el_count <= 0) {		// etries do not exists
-		printf("Error in build_entry_index: Input entry_list is empty\n");
-		return EC_FAIL;
-	}
-
-	ErrorCode err;
-	entry* entr = get_first(el);	// get first entry
-
-	ix = create_index(type);	// create the BK_tree
-	ix->root = create_BK_node(entr);		// create node of root
-
-	for(unsigned int i = 1; i < el_count; i++){
-		entr = get_next(el, entr);		
-		err = BK_insert_entry(entr, ix->root, type);
-		if(err != EC_SUCCESS)
-			return err;
-	}
 }
 
 static ErrorCode BK_insert_entry(entry *input,BK_node *tree,MatchType type){
@@ -122,13 +122,6 @@ static ErrorCode BK_insert_entry(entry *input,BK_node *tree,MatchType type){
 	return EC_SUCCESS;
 }
 
-ErrorCode destroy_entry_index(Index* ix){
-	ErrorCode err;
-	err = BK_destroy_entry(&(ix->root));
-	free(ix);
-	return err;
-}
-
 static ErrorCode BK_destroy_entry(BK_node **tree){
 	BK_child *tmp_child;
 	if(*tree == NULL){
@@ -151,4 +144,32 @@ static ErrorCode BK_destroy_entry(BK_node **tree){
 			*tree = NULL;
 		}
 	}
+}
+
+ErrorCode build_entry_index(const entry_list* el, MatchType type, Index* ix){
+	unsigned int el_count = get_number_entries(el);		// get size of entry list
+	if (el_count <= 0) {		// etries do not exists
+		printf("Error in build_entry_index: Input entry_list is empty\n");
+		return EC_FAIL;
+	}
+
+	ErrorCode err;
+	entry* entr = get_first(el);	// get first entry
+
+	ix = create_index(type);	// create the BK_tree
+	ix->root = create_BK_node(entr);		// create node of root
+
+	for(unsigned int i = 1; i < el_count; i++){
+		entr = get_next(el, entr);		
+		err = BK_insert_entry(entr, ix->root, type);
+		if(err != EC_SUCCESS)
+			return err;
+	}
+}
+
+ErrorCode destroy_entry_index(Index* ix){
+	ErrorCode err;
+	err = BK_destroy_entry(&(ix->root));
+	free(ix);
+	return err;
 }
