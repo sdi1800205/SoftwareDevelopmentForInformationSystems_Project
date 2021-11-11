@@ -35,7 +35,7 @@ ErrorCode create_entry(const word w, entry** e) {
     }
 
     //allocate memory for the word
-    newEntry->word = malloc((strlen(w))*sizeof(char));
+    newEntry->word = malloc((strlen(w)+1)*sizeof(char));
     if (newEntry->word == NULL){
         printf("Error while allocating memory\n");
         return EC_NO_AVAIL_RES;
@@ -43,8 +43,8 @@ ErrorCode create_entry(const word w, entry** e) {
 
     // copy the given word into newEntry->word
     // strcpy(newEntry->word, w);
-    strncpy(newEntry->word, w, strlen(w)-1);
-	newEntry->word[strlen(w)-1]='\0';
+    strncpy(newEntry->word, w, strlen(w));
+	newEntry->word[strlen(w)]='\0';
 
     // set everything else to null
     newEntry->payload = NULL;

@@ -25,7 +25,7 @@ struct BK_node {
 
 // creates a BK_tree/index and initialize with no root and the Matchtype of the words
 static Index* create_index(MatchType type) {
-	Index* indx = malloc(sizeof(*indx));
+	Index* indx = malloc(sizeof(Index));
 	indx->root = NULL;
 	indx->match_type = type;
 	return indx;
@@ -33,7 +33,7 @@ static Index* create_index(MatchType type) {
 
 // creates a BK_node and initialized with an entry and the distance of this entry and the parent's node
 static BK_node* create_BK_node(entry* entr, int dist) {
-	BK_node* node = malloc(sizeof(*node));
+	BK_node* node = malloc(sizeof(BK_node));
 	node->centry = entr;
 	node->children = BK_list_create();
 	node->dist = dist;
@@ -119,12 +119,12 @@ static ErrorCode destroy_tree(BK_node* tree_node) {
 	BK_Listnode listnode = BK_list_first(tree_node->children);
 	if (listnode != BK_LIST_EOF) {
 		// destroy all subtrees
-		while (listnode != BK_LIST_EOF) {
+		while(listnode != BK_LIST_EOF){
 			ErrorCode err = destroy_tree(listnode->node);	// destroy the tree below current list_node
 			if (err == EC_FAIL)
 				return EC_FAIL;
-			BK_list_remove_node(tree_node->children, BK_LIST_EOF, listnode);		// remove the list_node
-			listnode = BK_list_next(listnode);				// move to next list_node
+			BK_list_remove_node(tree_node->children, BK_LIST_BOF, listnode);		// remove the list_node
+			listnode = BK_list_first(tree_node->children);				// move to next list_node
 		}
 	}
 
@@ -175,9 +175,12 @@ ErrorCode destroy_entry_index(Index* indx) {
 static void print_tree(BK_node *node){
 	printf("Word : %s\n",get_entry_word(node->centry));
 	BK_Listnode tmp_list = BK_list_first(node->children);
+	int i = 0;
 	while(tmp_list != BK_LIST_EOF){
+		printf("Word : %s ith child: %d\n",get_entry_word(node->centry),i);
 		print_tree(tmp_list->node);
 		tmp_list = BK_list_next(tmp_list);
+		i++;
 	}
 }
 

@@ -4,7 +4,7 @@
 // extra functions
 
 static BK_Listnode create_node() {
-    BK_Listnode node = malloc(sizeof(*node));
+    BK_Listnode node = malloc(sizeof(struct BK_list_node));
     node->node = NULL;
     node->next = BK_LIST_EOF;
     return node;
@@ -14,7 +14,7 @@ static BK_Listnode create_node() {
 
 BK_List BK_list_create() {
     // memory allocation
-    BK_List list = malloc(sizeof(*list));
+    BK_List list = malloc(sizeof(struct BK_list));
     list->dummy = create_node();
 
     // initialize rest of the list
@@ -56,6 +56,8 @@ void BK_list_insert_next(BK_List list, BK_Listnode node, BK_node* new_tree_node)
     new_list_node->node = new_tree_node;        // the new list_node points to the BK_node that was sent
     new_list_node->next = node->next;           // the new list_node points to the next list_node of current list_node
     node->next = new_list_node;                 // the current list_node points to the new list_node that has been created
+
+    (list->size)++;
 }
 
 void BK_list_remove_node(BK_List list, BK_Listnode previous, BK_Listnode node) {
