@@ -38,10 +38,10 @@ static entry_list* read_words() {
 
     // Read line by line the file. Each line has a word
     while ((read = getline(&word, &len, fp)) != -1) {
-        // printf("Retrieved line of length %zu:\n", read);
+        //printf("Retrieved line of length %zu:\n", read);
 
         // Remove newline character if exists in word
-        if (word[strlen(word)-1] == '\n') {
+        if (word[strlen(word)-1] == '\n'){
             word[strlen(word)-1] = '\0';
         }
 
@@ -96,12 +96,13 @@ void test_entry_index() {
     BK_tree_print(indx);
     err = destroy_entry_index(indx);
     TEST_ASSERT(err == EC_SUCCESS);
+    destroy_entry_list(EntryList);
 }
 
 // Λίστα με όλα τα tests προς εκτέλεση
 TEST_LIST = {
 	{ "test_entry_list", test_entry_list },
-	{ "test_build_entry_index", test_build_entry_index },
+	{ "test_entry_index", test_entry_index },
 
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 };
