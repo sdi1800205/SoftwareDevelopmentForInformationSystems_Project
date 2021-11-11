@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core.h"
-
+#include "BK_tree_build.h"
 
 typedef struct BK_node BK_node;
 typedef struct BK_child BK_child;
