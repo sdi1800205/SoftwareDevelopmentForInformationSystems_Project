@@ -93,6 +93,7 @@ void test_entry_index() {
     Index* indx;
     ErrorCode err = build_entry_index(EntryList, MT_HAMMING_DIST, &indx);
     TEST_ASSERT(err == EC_SUCCESS);
+    printf("\n");
     BK_tree_print(indx);
     err = destroy_entry_index(indx);
     TEST_ASSERT(err == EC_SUCCESS);

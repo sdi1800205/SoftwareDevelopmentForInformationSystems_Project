@@ -5,8 +5,7 @@
 #include "BK_tree.h"
 #include "BK_List.h"
 
-// pointer to function that finds the distance of 2 words of 2 entries
-typedef int (*DistanceFunc)(entry* a, entry* b);
+//////////// structs of module ////////////////
 
 struct  BK_tree {
     BK_node* root;		// root of tree/index
@@ -40,13 +39,13 @@ static BK_node* create_BK_node(entry* entr, int dist) {
 	return node;
 }
 
-// function that finds the MT_HAMMING_DIST distance between 2 words of 2 entries
-static int find_distance_entries(entry* a, entry* b, MatchType type) {
-	char* a_char = get_entry_word(a);
-	char* b_char = get_entry_word(b);
+// function that finds distance between 2 words
+static int find_distance_word(word a, word b, MatchType type) {
+	char* a_char = a;
+	char* b_char = b;
 	int diff = 0;	// number of differences
 
-	if (type == MT_HAMMING_DIST) {
+	if (type == MT_HAMMING_DIST) {		// find MT_Hamming distance
 		// check all the characters until one or both words end
 		while (*a_char != '\0' && *b_char !='\0') {
 			if (*a_char != *b_char)	// if the characters are different, add one more to the difference number value
@@ -70,6 +69,11 @@ static int find_distance_entries(entry* a, entry* b, MatchType type) {
 		}
 	}
 	return diff;
+}
+
+// function that finds distance between 2 entries
+static int find_distance_entries(entry* a, entry* b, MatchType type) {
+	return find_distance_word(get_entry_word(a), get_entry_word(b), type);
 }
 
 // this function inserts a new entry in the tree recursively
@@ -112,6 +116,24 @@ static ErrorCode BK_insert_entry(entry *input, BK_node* tree_node, MatchType typ
 	return EC_SUCCESS;
 }
 
+// this function checks recursively which nodes/words are valid for the requested word
+static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type) {
+	add_entry(result, tree_node->centry);	// we add the entry of the node to the result list
+	int dist = find_distance_word(w, get_entry_word(tree_node->centry), type);		// find distance between requested word and current node
+
+	// get the first node of the children's list
+	BK_Listnode listnode = BK_list_first(tree_node->children);
+	// checking all the children until the distance is higher than d+n
+	while (listnode != BK_LIST_EOF && listnode->node->dist < dist + threshold) {
+		if (listnode->node->dist > dist - threshold) {		// we also keep the nodes that their distance is lower than d-n
+			result = lookup_tree(w, listnode->node, threshold, result, type);	// we call the function for the valid node
+		}
+		listnode = BK_list_next(listnode);	// go to the next child
+	}
+	return result;	// return the result list
+}
+
+// this function deletes the tree recursively
 static ErrorCode destroy_tree(BK_node* tree_node) {
 	if (tree_node == NULL)
 		return EC_FAIL;
@@ -159,6 +181,14 @@ ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx){
 	}
 	return EC_SUCCESS;
 }
+
+ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result) {
+	if (ix == NULL || threshold < 0 || *result == NULL)
+		return EC_FAIL;
+	*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type);		// we call a recursive function for this job
+	return EC_SUCCESS;
+}
+
 
 ErrorCode destroy_entry_index(Index* indx) {
 	ErrorCode err = destroy_tree(indx->root);
