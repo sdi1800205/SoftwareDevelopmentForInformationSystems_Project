@@ -10,6 +10,7 @@
 struct  BK_tree {
     BK_node* root;		// root of tree/index
 	MatchType match_type;		// type that matches words
+	DestroyFunc destroy;		// function called when an entry is going to be deleted from the tree
 };
 
 struct BK_node {
@@ -23,10 +24,11 @@ struct BK_node {
 /////////// functions that help with implementation ///////////
 
 // creates a BK_tree/index and initialize with no root and the Matchtype of the words
-static Index* create_index(MatchType type) {
+static Index* create_index(MatchType type, DestroyFunc destroy) {
 	Index* indx = malloc(sizeof(Index));
 	indx->root = NULL;
 	indx->match_type = type;
+	indx->destroy = destroy;
 	return indx;
 }
 
@@ -118,14 +120,15 @@ static ErrorCode BK_insert_entry(entry *input, BK_node* tree_node, MatchType typ
 
 // this function checks recursively which nodes/words are valid for the requested word
 static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type) {
-	add_entry(result, tree_node->centry);	// we add the entry of the node to the result list
 	int dist = find_distance_word(w, get_entry_word(tree_node->centry), type);		// find distance between requested word and current node
+	if (dist <= threshold)
+		add_entry(result, tree_node->centry);	// we add the entry of the node to the result list
 
 	// get the first node of the children's list
 	BK_Listnode listnode = BK_list_first(tree_node->children);
 	// checking all the children until the distance is higher than d+n
-	while (listnode != BK_LIST_EOF && listnode->node->dist < dist + threshold) {
-		if (listnode->node->dist > dist - threshold) {		// we also keep the nodes that their distance is lower than d-n
+	while (listnode != BK_LIST_EOF && listnode->node->dist <= dist + threshold) {
+		if (listnode->node->dist >= dist - threshold) {		// we also keep the nodes that their distance is lower than d-n
 			result = lookup_tree(w, listnode->node, threshold, result, type);	// we call the function for the valid node
 		}
 		listnode = BK_list_next(listnode);	// go to the next child
@@ -134,7 +137,7 @@ static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, 
 }
 
 // this function deletes the tree recursively
-static ErrorCode destroy_tree(BK_node* tree_node) {
+static ErrorCode destroy_tree(Index* indx, BK_node* tree_node) {
 	if (tree_node == NULL)
 		return EC_FAIL;
 	
@@ -142,7 +145,7 @@ static ErrorCode destroy_tree(BK_node* tree_node) {
 	if (listnode != BK_LIST_EOF) {
 		// destroy all subtrees
 		while(listnode != BK_LIST_EOF){
-			ErrorCode err = destroy_tree(listnode->node);	// destroy the tree below current list_node
+			ErrorCode err = destroy_tree(indx, listnode->node);	// destroy the tree below current list_node
 			if (err == EC_FAIL)
 				return EC_FAIL;
 			BK_list_remove_node(tree_node->children, BK_LIST_BOF, listnode);		// remove the list_node
@@ -151,7 +154,12 @@ static ErrorCode destroy_tree(BK_node* tree_node) {
 	}
 
 	BK_list_destroy(tree_node->children);	// destroy list
-	free(tree_node);						// deallocate BK_node
+	if (indx->destroy != NULL) {
+		ErrorCode err = indx->destroy(tree_node->centry);						// deallocate entry
+		if (err != EC_SUCCESS)
+			return EC_FAIL;
+	}
+	free(tree_node);	// deallocate BK_node
 
 	return EC_SUCCESS;
 }
@@ -160,7 +168,7 @@ static ErrorCode destroy_tree(BK_node* tree_node) {
 ////////// functions of BK_tree.h //////////////
 
 
-ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx){
+ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx, DestroyFunc destroy){
 	unsigned int el_count = get_number_entries(el);		// get size of entry list
 	if (el_count <= 0) {		// etries do not exists
 		printf("Error in build_entry_index: Input entry_list is empty\n");
@@ -170,7 +178,7 @@ ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx){
 	ErrorCode err;
 	entry* entr = get_first(el);	// get first entry
 
-	*indx = create_index(type);	// create the BK_tree
+	*indx = create_index(type, destroy);	// create the BK_tree
 	(*indx)->root = create_BK_node(entr, -1);		// create node of root(-1 because its the root)
 
 	for(unsigned int i = 1; i < el_count; i++){
@@ -191,7 +199,7 @@ ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list*
 
 
 ErrorCode destroy_entry_index(Index* indx) {
-	ErrorCode err = destroy_tree(indx->root);
+	ErrorCode err = destroy_tree(indx, indx->root);
 	if (err != EC_SUCCESS)
 		return EC_FAIL;
 	free(indx);

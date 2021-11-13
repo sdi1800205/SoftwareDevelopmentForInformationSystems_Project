@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "interface.h"
+
+#include "entry_list.h"
 #include "core.h"
 
 // #define _DEBUG_ 1
@@ -20,6 +21,7 @@ struct entry_list
     entry* last;
     
     int size;
+    DestroyFunc destroy;    // function called when an entry is going to be deleted from the list
 };
 
 ErrorCode create_entry(const word w, entry** e) {
@@ -69,7 +71,7 @@ ErrorCode destroy_entry(entry *e) {
     return EC_SUCCESS;
 }
 
-ErrorCode create_entry_list(entry_list** el) {
+ErrorCode create_entry_list(entry_list** el, DestroyFunc destroy) {
     // Allocate entry_list memory
     entry_list* newEntryList = malloc(sizeof(entry_list));
     if(newEntryList == NULL) {
@@ -83,6 +85,7 @@ ErrorCode create_entry_list(entry_list** el) {
     // Initialize entry_list members
     newEntryList->last = newEntryList->dummy;
     newEntryList->size = 0;
+    newEntryList->destroy = destroy;
 
     *el = newEntryList;
 
@@ -154,10 +157,13 @@ ErrorCode destroy_entry_list(entry_list* el) {
         printf("---Trying to destroy entry with word:%s\n",temp->word);
         #endif
         next = get_next(el, temp);
-        return_code = destroy_entry(temp);
-        if (return_code != EC_SUCCESS) {
-            return EC_FAIL;
+        if (el->destroy != NULL) {
+            return_code = el->destroy(temp);
+            if (return_code != EC_SUCCESS) {
+                return EC_FAIL;
+            }
         }
+            
         #ifdef _DEBUG_
         printf("---Entry destroyed\n");
         #endif

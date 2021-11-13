@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BK_tree.h"
+#include "common_types.h"
 
 // δομή λίστας για τα παιδιά της κάθε λέξης του BK_tree
 typedef struct BK_list_node {

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "interface.h"
+#include "entry_list.h"
 #include "BK_tree.h"
 #include "core.h"
 
@@ -29,7 +29,7 @@ static entry_list* read_words() {
 
     // Create entry list
     entry_list* EntryList;
-    return_code = create_entry_list(&EntryList);
+    return_code = create_entry_list(&EntryList, (DestroyFunc)destroy_entry);
     TEST_ASSERT(return_code == EC_SUCCESS);
 
     #ifdef _DEBUG_
@@ -91,12 +91,34 @@ void test_entry_list() {
 void test_entry_index() {
     entry_list* EntryList = read_words();
     Index* indx;
-    ErrorCode err = build_entry_index(EntryList, MT_HAMMING_DIST, &indx);
+    ErrorCode err = build_entry_index(EntryList, MT_HAMMING_DIST, &indx, NULL);
     TEST_ASSERT(err == EC_SUCCESS);
-    printf("\n");
-    BK_tree_print(indx);
+    // printf("\n");
+    // BK_tree_print(indx);
     err = destroy_entry_index(indx);
     TEST_ASSERT(err == EC_SUCCESS);
+    destroy_entry_list(EntryList);
+}
+
+void test_lookup_entry_index() {
+    entry_list* EntryList = read_words();
+    Index* indx;
+    ErrorCode err = build_entry_index(EntryList, MT_HAMMING_DIST, &indx, NULL);
+    TEST_ASSERT(err == EC_SUCCESS);
+
+    entry_list* result;
+    create_entry_list(&result, NULL);
+    lookup_entry_index("henn", indx, 2, &result);
+
+    // Tests
+    TEST_ASSERT(get_number_entries(result) == 2); 
+    entry* entr = get_first(result);
+    TEST_ASSERT(strcmp(get_entry_word(entr), "hell") == 0);
+    entr = get_next(result, entr);
+    TEST_ASSERT(strcmp(get_entry_word(entr), "help") == 0);
+
+    destroy_entry_index(indx);
+    destroy_entry_list(result);
     destroy_entry_list(EntryList);
 }
 
@@ -104,6 +126,7 @@ void test_entry_index() {
 TEST_LIST = {
 	{ "test_entry_list", test_entry_list },
 	{ "test_entry_index", test_entry_index },
+    { "test_lookup_entry_index", test_lookup_entry_index },
 
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 };

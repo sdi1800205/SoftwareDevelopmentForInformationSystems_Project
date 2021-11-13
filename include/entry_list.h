@@ -1,7 +1,9 @@
 #ifndef __ENTRY_H_
 #define __ENTRY_H_
 
+#include "common_types.h"
 #include "core.h"
+
 // Virtual entries: Beginning Of File, EOF: End Of File
 #define LIST_BOF (entry)0
 #define LIST_EOF (entry)0
@@ -10,9 +12,12 @@ typedef struct entry_list entry_list;
 typedef struct entry entry;
 typedef char* word;
 
+// entry
 ErrorCode create_entry(const word w, entry** e);
 ErrorCode destroy_entry(entry* e);
-ErrorCode create_entry_list(entry_list** el);
+
+// entry_list
+ErrorCode create_entry_list(entry_list** el, DestroyFunc destroy);  // we use a destroy function for the entries of the list
 unsigned int get_number_entries(const entry_list* el);
 ErrorCode add_entry(entry_list* el, const entry* e);
 entry* get_first(const entry_list* el);
