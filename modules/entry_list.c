@@ -9,20 +9,24 @@
 
 struct entry
 {
-    entry* next;
-
     word word;
     void* payload;  
 };
 
 struct entry_list
 {
-    entry* dummy;    // virtual entry that points to the first entry
-    entry* last;
+    entry_list_node* dummy;    // virtual entry that points to the first entry
+    entry_list_node* last;
     
     int size;
     DestroyFunc destroy;    // function called when an entry is going to be deleted from the list
 };
+
+struct entry_list_node {
+    entry* value;
+    entry_list_node* next;
+};
+
 
 ErrorCode create_entry(const word w, entry** e) {
     if (w == NULL) {
@@ -50,7 +54,6 @@ ErrorCode create_entry(const word w, entry** e) {
 
     // set everything else to null
     newEntry->payload = NULL;
-    newEntry->next = NULL;
 
     // assign the created entry to the pointer so as to be return (pass by reference)
     *e = newEntry;
@@ -79,8 +82,10 @@ ErrorCode create_entry_list(entry_list** el, DestroyFunc destroy) {
         return EC_NO_AVAIL_RES;
     }
 
-    // Create dummy entry (virtual entry that will point to the first entry)
-    create_entry("dummy", &(newEntryList->dummy));
+    // Allocate memory for entry_list_node for dummy
+    newEntryList->dummy = malloc(sizeof(entry_list_node));
+    newEntryList->dummy->value = NULL;
+    newEntryList->dummy->next = LIST_EOF;
 
     // Initialize entry_list members
     newEntryList->last = newEntryList->dummy;
@@ -107,34 +112,34 @@ ErrorCode add_entry(entry_list* el, const entry* e) {
         return EC_FAIL;
     }
 
+    // allocate memory for new entry_list_node
+    entry_list_node* new_node = malloc(sizeof(entry_list_node));
+    new_node->value = (entry*)e;
+    new_node->next = LIST_EOF;
+
     // set the last entry of entry list as this node
-    el->last->next = (entry*)e;
-    el->last = (entry*)e;
+    el->last->next = new_node;
+    el->last = new_node;
     el->size++;
 
     return EC_SUCCESS;
 }
 
-entry* get_first(const entry_list* el) {
+entry_list_node* get_first(const entry_list* el) {
     if (el == NULL) {
         printf("Entry list is not initialized\n");
-        return NULL;
-    }
-
-    if (el->size == 0) {
-        printf("Entry list is empty\n");
         return NULL;
     }
     return el->dummy->next;
 }
 
-entry* get_next(const entry_list* el, const entry* e) {
-    if (el == NULL || e == NULL) {
+entry_list_node* get_next(const entry_list* el, const entry_list_node* node) {
+    if (el == NULL || node == NULL) {
         printf("Given arguments must not be null\n");
         return NULL;
     }
 
-    return e->next;
+    return node->next;
 }
 
 ErrorCode destroy_entry_list(entry_list* el) {
@@ -143,26 +148,23 @@ ErrorCode destroy_entry_list(entry_list* el) {
         return EC_FAIL;
     }
 
-    entry* next;
-    entry* temp = get_first(el);
-    if (temp == NULL) {
-        printf("Error getting first entry\n");
-        return EC_FAIL;
-    }
-
+    entry_list_node* next;
+    entry_list_node* temp = get_first(el);
     ErrorCode return_code;
 
-    while (temp != NULL) {
+    while (temp != LIST_EOF) {
         #ifdef _DEBUG_
         printf("---Trying to destroy entry with word:%s\n",temp->word);
         #endif
         next = get_next(el, temp);
         if (el->destroy != NULL) {
-            return_code = el->destroy(temp);
+            entry* value = entry_list_node_value(temp);
+            return_code = el->destroy(value);
             if (return_code != EC_SUCCESS) {
                 return EC_FAIL;
             }
         }
+        free(temp);
             
         #ifdef _DEBUG_
         printf("---Entry destroyed\n");
@@ -175,13 +177,17 @@ ErrorCode destroy_entry_list(entry_list* el) {
         temp = next;
     }
 
-    destroy_entry(el->dummy);
+    free(el->dummy);
     free(el);
 
     return EC_SUCCESS;
 }
 
 // Extra functions
+entry* entry_list_node_value(const entry_list_node* node) {
+    return node->value;
+}
+
 word get_entry_word(entry* e) {
     if (e == NULL)
         return NULL;

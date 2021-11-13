@@ -176,14 +176,14 @@ ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx, 
 	}
 
 	ErrorCode err;
-	entry* entr = get_first(el);	// get first entry
+	entry* entr = entry_list_node_value(get_first(el));	// get first entry
 
 	*indx = create_index(type, destroy);	// create the BK_tree
 	(*indx)->root = create_BK_node(entr, -1);		// create node of root(-1 because its the root)
 
-	for(unsigned int i = 1; i < el_count; i++){
-		entr = get_next(el, entr);		
-		err = BK_insert_entry(entr, (*indx)->root, type);
+	for (entry_list_node* node = get_first(el); node != LIST_EOF; node = get_next(el, node)) {
+		entry* value = entry_list_node_value(node);
+		err = BK_insert_entry(value, (*indx)->root, type);
 		if(err != EC_SUCCESS )
 			return err;
 	}

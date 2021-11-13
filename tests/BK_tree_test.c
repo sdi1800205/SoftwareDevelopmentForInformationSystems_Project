@@ -72,6 +72,12 @@ static entry_list* read_words() {
     return EntryList;
 }
 
+void test_leaks() {
+    entry_list* EntryList;
+    create_entry_list(&EntryList, (DestroyFunc)destroy_entry);
+    destroy_entry_list(EntryList);
+}
+
 void test_entry_list() {
     entry_list* EntryList = read_words();
 
@@ -111,11 +117,15 @@ void test_lookup_entry_index() {
     lookup_entry_index("henn", indx, 2, &result);
 
     // Tests
-    TEST_ASSERT(get_number_entries(result) == 2); 
-    entry* entr = get_first(result);
-    TEST_ASSERT(strcmp(get_entry_word(entr), "hell") == 0);
-    entr = get_next(result, entr);
-    TEST_ASSERT(strcmp(get_entry_word(entr), "help") == 0);
+    TEST_ASSERT(get_number_entries(result) == 2);   // check that the result list has 2 elements
+    
+    entry_list_node* node = get_first(result);
+    entry* entr = entry_list_node_value(node);
+    TEST_ASSERT(strcmp(get_entry_word(entr), "hell") == 0);     // check first word
+    
+    node = get_next(result, node);
+    entr = entry_list_node_value(node);
+    TEST_ASSERT(strcmp(get_entry_word(entr), "help") == 0);     // check second word
 
     destroy_entry_index(indx);
     destroy_entry_list(result);
@@ -124,6 +134,7 @@ void test_lookup_entry_index() {
 
 // Λίστα με όλα τα tests προς εκτέλεση
 TEST_LIST = {
+    // { "test_leaks", test_leaks },
 	{ "test_entry_list", test_entry_list },
 	{ "test_entry_index", test_entry_index },
     { "test_lookup_entry_index", test_lookup_entry_index },
