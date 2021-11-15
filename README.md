@@ -10,7 +10,7 @@ Functions are declared in interface.h and defined in entry_list.c
 <br>
 <br>
 <b>struct entry</b><br>
-![entry](https://github.com/sdi1800205/blob/main/entry.jpg)
+![entry](https://user-images.githubusercontent.com/61864130/141796618-87704b3d-0475-4c51-b223-5e0e682dade3.jpg)
 <br>
 <b>struct entry_list</b><br>
 
