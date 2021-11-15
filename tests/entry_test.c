@@ -84,6 +84,26 @@ void test_entry_list() {
     #ifdef _DEBUG_
     printf("---Total number of entries: %d\n\n", get_number_entries(EntryList));
     #endif
+    // check number of words
+    TEST_ASSERT(get_number_entries(EntryList) == 7);
+    
+    // check first word
+    entry_list_node* node = get_first(EntryList);
+    entry* entr = entry_list_node_value(node);
+    word w = get_entry_word(entr);
+    TEST_ASSERT(strcmp(w, "hell") == 0);
+
+    // check second
+    node = get_next(EntryList, node);
+    entr = entry_list_node_value(node);
+    w = get_entry_word(entr);
+    TEST_ASSERT(strcmp(w, "help") == 0);
+
+    // check third
+    node = get_next(EntryList, node);
+    entr = entry_list_node_value(node);
+    w = get_entry_word(entr);
+    TEST_ASSERT(strcmp(w, "fall") == 0);
 
     ErrorCode return_code = destroy_entry_list(EntryList);
     TEST_ASSERT(return_code == EC_SUCCESS);
