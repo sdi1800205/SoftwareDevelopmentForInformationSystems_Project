@@ -10,14 +10,11 @@ Functions are declared in interface.h and defined in entry_list.c
 <br>
 <br>
 <b>struct entry</b><br>
-![entry](https://user-images.githubusercontent.com/61864130/141796618-87704b3d-0475-4c51-b223-5e0e682dade3.jpg)
+![entry](https://user-images.githubusercontent.com/61864130/141796761-f798c463-6127-4d9c-8a80-da6f30238160.jpg)
 <br>
 <b>struct entry_list</b><br>
-
+![entry_list](https://user-images.githubusercontent.com/61864130/141796795-779aac62-7520-4feb-8f27-8e3c82aac92c.jpg)
 <br>
 <b>struct BK_tree</b><br>
-
-<br>
-<b>struct BK_List</b><br>
-
+![BK_tree](https://user-images.githubusercontent.com/61864130/141796806-70fdc372-8f2b-429b-81ca-5a75dd198dcf.jpg)
 <br>
