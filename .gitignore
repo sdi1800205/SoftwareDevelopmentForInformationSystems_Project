@@ -4,7 +4,9 @@
 
 # Εκτός από τα παρακάτω
 !*.c
+!*.cpp
 !*.h
+!*.txt
 !Makefile
 !.gitignore
 !README.md
