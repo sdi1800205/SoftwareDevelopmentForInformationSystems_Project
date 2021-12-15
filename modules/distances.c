@@ -2,12 +2,54 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../include/distances.h"
 #include "../include/BK_tree.h"
 
+#define HAMMING_LENGTH 28 // Length 28 => from 4 to 31
+
 struct hammingIndex {
-    struct BK_tree *BK_trees[28];   // array of pointers to BK_trees. Length = 28 => from 4 to 31
+    struct BK_tree *BK_trees[HAMMING_LENGTH];   // array of pointers to BK_trees
 };
 
+
+hammingIndex* create_hamming_index() {
+    hammingIndex* new;
+
+    // initialize all pointers to NULL
+    for (int i=0; i<HAMMING_LENGTH; i++) {
+        new->BK_trees[i] = NULL; 
+    }
+
+    return new;
+}
+
+ErrorCode destroy_hamming_index(hammingIndex* h) {
+    ErrorCode e;
+    // destroy all of 28 BK_trees
+    for (int i=0; i<HAMMING_LENGTH; i++) {
+        e = destroy_entry_index(h->BK_trees[i]);
+
+        if (e != EC_SUCCESS) return EC_FAIL;
+    }
+
+    return EC_SUCCESS;
+}
+
+ErrorCode insert_to_hamming_index(hammingIndex* h, word w) {
+    int word_length = strlen(w);
+    ErrorCode e;
+
+    if (h->BK_trees[word_length - 4] == NULL) { // word_lengths from 4 to 28, array starts at 0 so word_length - 4 is the right index of the array
+        // create new BK_tree if there isn't any allocated for this word_length
+        e = build_entry_index( entry_list, MatchType, &(h->BK_trees[word_length - 4]) );
+    }
+    else {
+        // insert into BK_tree. Exists for this word_length
+        BK_insert_entry();
+    }
+
+    return EC_SUCCESS;
+}
 
 unsigned int hamming_distance(char *a, int length_a, char *b, int length_b) {
 	char* a_char = a;
@@ -30,46 +72,4 @@ unsigned int hamming_distance(char *a, int length_a, char *b, int length_b) {
     }
 
     return diff;
-}
-
-
-// ----------- EDIT DISTANCE ----------- //
-// Copied from https://www.geeksforgeeks.org/edit-distance-dp-5/
-
-// define min function between two numbers
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-
-// Utility function to find minimum of three numbers
-int min(int x, int y, int z) { return MIN(MIN(x, y), z); }
-  
-// m = length of str1, 
-// n = length of str2
-int editDist(char *str1, char *str2, int m, int n)
-{
-    // If first string is empty, the only option is to
-    // insert all characters of second string into first
-    if (m == 0)
-        return n;
-  
-    // If second string is empty, the only option is to
-    // remove all characters of first string
-    if (n == 0)
-        return m;
-  
-    // If last characters of two strings are same, nothing
-    // much to do. Ignore last characters and get count for
-    // remaining strings.
-    if (str1[m - 1] == str2[n - 1])
-        return editDist(str1, str2, m - 1, n - 1);
-  
-    // If last characters are not same, consider all three
-    // operations on last character of first string,
-    // recursively compute minimum cost for all three
-    // operations and take minimum of three values.
-    return 1
-           + min(editDist(str1, str2, m, n - 1), // Insert
-                 editDist(str1, str2, m - 1, n), // Remove
-                 editDist(str1, str2, m - 1,
-                          n - 1) // Replace
-             );
 }
