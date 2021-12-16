@@ -1,4 +1,5 @@
 #include "core.h"
+#include "distances.h"
 
 #include "ADTMap.h"
 #include "ADTSet.h"
@@ -10,11 +11,6 @@
 int compare_ints(Pointer a, Pointer b) {
     return *(int*)a - *(int*)b;
 }
-
-int compare_entries_exact(Pointer a, Pointer b) {
-	// exact_matc
-}
-
 
 // Keeps all information related to an active query
 struct Query
@@ -48,7 +44,8 @@ Index* edit_dist;
 //////////// core.h functions ///////////////
 
 ErrorCode InitializeIndex() {
-	exact_dist = map_create(compare_entries_exact, (DestroyFunc)destroy_entry, NULL);		// we only use key of dictionary, not the value
+	exact_dist = map_create(exact_distance_entry, (DestroyFunc)destroy_entry, NULL);		// we only use key of dictionary, not the value
+	map_set_hash_function(exact_dist, hash_string);
 	create_entry_index(&edit_dist, MT_EDIT_DIST);
 	// create ham index
 }
