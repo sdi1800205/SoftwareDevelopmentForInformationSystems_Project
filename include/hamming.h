@@ -4,8 +4,8 @@
 #include "BK_tree.h"
 #include "entry_list.h"
 
-typedef struct hammingIndex hammingIndex;
+typedef struct hamIndex hamIndex;
 
-hammingIndex* create_hamming_index();
-ErrorCode destroy_hamming_index(hammingIndex* h);
-ErrorCode insert_hamming_index(hammingIndex* h, entry* entr);
+hamIndex* create_hamming_index();
+ErrorCode destroy_hamming_index(hamIndex* h);
+ErrorCode insert_hamming_index(hamIndex* h, entry* entr);

@@ -5,13 +5,13 @@
 
 #define HAMMING_LENGTH 28 // Length 28 => from 4 to 31
 
-struct hammingIndex {
+struct hamIndex {
     struct BK_tree *BK_trees[HAMMING_LENGTH];   // array of pointers to BK_trees
 };
 
 
-hammingIndex* create_hamming_index() {
-    hammingIndex* new;
+hamIndex* create_hamming_index() {
+    hamIndex* new;
 
     // initialize all pointers to NULL
     for (int i=0; i<HAMMING_LENGTH; i++) {
@@ -21,7 +21,7 @@ hammingIndex* create_hamming_index() {
     return new;
 }
 
-ErrorCode destroy_hamming_index(hammingIndex* h) {
+ErrorCode destroy_hamming_index(hamIndex* h) {
     ErrorCode e;
     // destroy all of 28 BK_trees
     for (int i=0; i<HAMMING_LENGTH; i++) {
@@ -34,7 +34,7 @@ ErrorCode destroy_hamming_index(hammingIndex* h) {
     return EC_SUCCESS;
 }
 
-ErrorCode insert_to_hamming_index(hammingIndex* h, entry *e) {
+ErrorCode insert_to_hamming_index(hamIndex* h, entry *e) {
     int word_length = strlen(get_entry_word(e));
 
     if (h->BK_trees[word_length - 4] == NULL) { // word_lengths from 4 to 28, array starts at 0 so word_length - 4 is the right index of the array
