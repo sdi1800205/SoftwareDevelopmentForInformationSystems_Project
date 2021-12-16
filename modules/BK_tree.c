@@ -192,7 +192,6 @@ ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx, 
 
 void create_entry_index(Index** indx, entry* entr, MatchType match_type, DestroyFunc destroy) {
 	*indx = create_index(match_type, destroy);		// allocate index
-	(*indx)->root = create_BK_node(entr, -1);		// create root node
 }
 
 ErrorCode insert_entry_index(Index* indx, entry* entr) {
@@ -200,7 +199,13 @@ ErrorCode insert_entry_index(Index* indx, entry* entr) {
 		printf("Error in insert_entry_index\n");
 		return EC_FAIL;
 	}
-	return BK_insert_entry(entr, indx->root, indx->match_type);
+	ErrorCode err = EC_SUCCESS;
+	if (indx->root == NULL)
+		indx->root = create_BK_node(entr, -1);		// create root node
+	else
+		err = BK_insert_entry(entr, indx->root, indx->match_type);
+
+	return err;
 }
 
 ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result) {
