@@ -3,6 +3,7 @@
 
 #include "common_types.h"
 #include "core.h"
+#include "ADTSet.h"
 
 // Virtual entries: Beginning Of File, EOF: End Of File
 #define LIST_BOF (entry_list_node*)0
@@ -28,5 +29,7 @@ ErrorCode destroy_entry_list(entry_list* el);
 // Extra functions
 entry* entry_list_node_value(const entry_list_node*);
 word get_entry_word(entry* e);
+void insert_entry_payload(entry* entr, int* query_id);
+Set get_entry_payload(entry* entr);
 
 #endif //__ENTRY_H_

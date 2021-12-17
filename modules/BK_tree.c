@@ -4,6 +4,9 @@
 
 #include "BK_tree.h"
 #include "BK_List.h"
+#include "distances.h"
+#include "ADTSet.h"
+#include "useful_functions.h"
 
 //////////// structs of module ////////////////
 
@@ -43,34 +46,15 @@ static BK_node* create_BK_node(entry* entr, int dist) {
 
 // function that finds distance between 2 words
 static int find_distance_word(word a, word b, MatchType type) {
-	char* a_char = a;
-	char* b_char = b;
-	int diff = 0;	// number of differences
+	int res;
+	if (type == MT_EXACT_MATCH)
+		res = exact_distance(a, strlen(a), b, strlen(b));
+	else if (type == MT_EDIT_DIST)
+		res = edit_distance(a, strlen(a), b, strlen(b));
+	else
+		res = hamming_distance(a, strlen(a), b, strlen(b));
 
-	if (type == MT_HAMMING_DIST) {		// find MT_Hamming distance
-		// check all the characters until one or both words end
-		while (*a_char != '\0' && *b_char !='\0') {
-			if (*a_char != *b_char)	// if the characters are different, add one more to the difference number value
-				diff++;
-			a_char++;
-			b_char++;
-		}
-		// if word a ends first, add the number of the rest characters of word b in total differences
-		if (*a_char == '\0' && *b_char != '\0') {
-			while (*b_char != '\0') {
-				diff++;
-				b_char++;
-			}
-		}
-		// if word b ends first, add the number of the rest characters of word a in total differences
-		else if (*b_char == '\0' && *a_char != '\0') {
-			while (*a_char != '\0') {
-				diff++;
-				a_char++;
-			}
-		}
-	}
-	return diff;
+	return res;
 }
 
 // function that finds distance between 2 entries
@@ -79,15 +63,24 @@ static int find_distance_entries(entry* a, entry* b, MatchType type) {
 }
 
 // this function inserts a new entry in the tree recursively
-static ErrorCode BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) {
+// and returns the node that has been inserted . In case of the entry's word already exists in the tree
+// it appends the new entry's payload to the old one and returns the old entry instead as the entry that has been updated
+entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) {
 	if (tree_node == NULL || input == NULL)
-		return EC_FAIL;
+		return NULL;
 	
 	int dist = find_distance_entries(tree_node->centry, input, type);		// find the distance of 2 entries
-	// we remove duplicates, so if we have the same word to insert, we swap the node's entry with the new one and we end the function with success errorcode
+	// we remove duplicates, so if we have the same word to insert,
+	// we append the new entry's payload to the old one in the tree and then delete the new entry
 	if (dist == 0) {
+		// Set payload = get_entry_payload(input);					// we take the set(payload) of new entry
+		// int* new_query_id = set_get_at(payload, 0);				// the new entry has only one query_id, so we take the first object of the set
+		// insert_entry_payload(tree_node->centry, create_int(*new_query_id));		// we create a new integer because the old one is about to be deleted and append the new query_id to the old entry's set(payload)
+		// destroy_entry(input);					// we remove new entry
+		// return EC_SUCCESS;
+		entry* old_entry = tree_node->centry;
 		tree_node->centry = input;
-		return EC_SUCCESS;
+		return old_entry;
 	}
 
 	// get the first node of the children's list
@@ -96,7 +89,7 @@ static ErrorCode BK_insert_entry(entry *input, BK_node* tree_node, MatchType typ
 	// case which the list has no list_nodes
 	if (listnode == BK_LIST_EOF) {
 		BK_list_insert_next(tree_node->children, BK_LIST_BOF, create_BK_node(input, dist));		// create the first list_node and create the new tree_node over there
-		return EC_SUCCESS;		// end function with success errorcode
+		return input;		// return the inserted entry
 	}
 
 	BK_Listnode previous = BK_LIST_BOF;		//initializing previous with the beginning of the list 
@@ -106,16 +99,13 @@ static ErrorCode BK_insert_entry(entry *input, BK_node* tree_node, MatchType typ
 		listnode = BK_list_next(listnode);	// move to the next list_node
 	}
 	// case of reaching the end of the list and still not found equal or higher distance OR just reached a higher distance
-	if (listnode == BK_LIST_EOF || listnode->node->dist > dist)
+	if (listnode == BK_LIST_EOF || listnode->node->dist > dist) {
 		BK_list_insert_next(tree_node->children, previous, create_BK_node(input, dist));		// create a new position after previous and create the new tree_node over there
-	// case of being equal
-	else {
-		ErrorCode err = BK_insert_entry(input, listnode->node, type);	// run again for the next tree_node
-		if (err != EC_SUCCESS)
-			return EC_FAIL;
+		return input;
 	}
-
-	return EC_SUCCESS;
+	// case of being equal
+	else
+		return BK_insert_entry(input, listnode->node, type);	// run again for the next tree_node
 }
 
 // this function checks recursively which nodes/words are valid for the requested word
@@ -175,7 +165,6 @@ ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx, 
 		return EC_FAIL;
 	}
 
-	ErrorCode err;
 	entry* entr = entry_list_node_value(get_first(el));	// get first entry
 
 	*indx = create_index(type, destroy);	// create the BK_tree
@@ -183,29 +172,28 @@ ErrorCode build_entry_index(const entry_list* el, MatchType type, Index** indx, 
 
 	for (entry_list_node* node = get_first(el); node != LIST_EOF; node = get_next(el, node)) {
 		entry* value = entry_list_node_value(node);
-		err = BK_insert_entry(value, (*indx)->root, type);
-		if(err != EC_SUCCESS )
-			return err;
+		entry* inserted = BK_insert_entry(value, (*indx)->root, type);
+		if(inserted == NULL )		// the returned entry should have a value, if its NULL then something went wrong
+			return EC_FAIL;
 	}
 	return EC_SUCCESS;
 }
 
-void create_entry_index(Index** indx, entry* entr, MatchType match_type, DestroyFunc destroy) {
+void create_entry_index(Index** indx, MatchType match_type, DestroyFunc destroy) {
 	*indx = create_index(match_type, destroy);		// allocate index
 }
 
-ErrorCode insert_entry_index(Index* indx, entry* entr) {
+entry* insert_entry_index(Index* indx, entry* entr) {
 	if (indx == NULL || entr == NULL) {
 		printf("Error in insert_entry_index\n");
-		return EC_FAIL;
+		return NULL;
 	}
-	ErrorCode err = EC_SUCCESS;
-	if (indx->root == NULL)
+	if (indx->root == NULL) {
 		indx->root = create_BK_node(entr, -1);		// create root node
+		return entr;
+	}
 	else
-		err = BK_insert_entry(entr, indx->root, indx->match_type);
-
-	return err;
+		return BK_insert_entry(entr, indx->root, indx->match_type);
 }
 
 ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result) {

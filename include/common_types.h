@@ -2,6 +2,9 @@
 
 #include "core.h"
 
+// Χρήση του τύπου "bool" για μεταβλητές που παίρνουν μόνο τιμές true / false
+#include <stdbool.h> 
+
 // pointer to an object of any type
 typedef void* Pointer;
 

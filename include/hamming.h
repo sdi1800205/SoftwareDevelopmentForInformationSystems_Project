@@ -6,6 +6,6 @@
 
 typedef struct hamIndex hamIndex;
 
-hamIndex* create_hamming_index();
-ErrorCode destroy_hamming_index(hamIndex* h);
-ErrorCode insert_hamming_index(hamIndex* h, entry* entr);
+hamIndex* create_hamming_index(DestroyFunc destroy);
+ErrorCode destroy_hamming_index(hamIndex* hamindx);
+entry* insert_hamming_index(hamIndex* hamindx, entry* entr);

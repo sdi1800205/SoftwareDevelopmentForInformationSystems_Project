@@ -7,11 +7,13 @@
 
 struct hamIndex {
     struct BK_tree *BK_trees[HAMMING_LENGTH];   // array of pointers to BK_trees
+    DestroyFunc destroy;                        // function that pass through the trees
 };
 
 
-hamIndex* create_hamming_index() {
+hamIndex* create_hamming_index(DestroyFunc destroy) {
     hamIndex* new;
+    new->destroy = destroy;
 
     // initialize all pointers to NULL
     for (int i=0; i<HAMMING_LENGTH; i++) {
@@ -25,28 +27,24 @@ ErrorCode destroy_hamming_index(hamIndex* h) {
     ErrorCode e;
     // destroy all of 28 BK_trees
     for (int i=0; i<HAMMING_LENGTH; i++) {
-        e = destroy_entry_index(h->BK_trees[i]);
-
-        if (e != EC_SUCCESS) 
-            return EC_FAIL;
+        if (h->BK_trees[i] != NULL) {       // check if tree exists
+            e = destroy_entry_index(h->BK_trees[i]);
+            if (e != EC_SUCCESS) 
+                return EC_FAIL;
+        }
     }
 
     return EC_SUCCESS;
 }
 
-ErrorCode insert_to_hamming_index(hamIndex* h, entry *e) {
+entry* insert_to_hamming_index(hamIndex* h, entry *e) {
     int word_length = strlen(get_entry_word(e));
 
     if (h->BK_trees[word_length - 4] == NULL) { // word_lengths from 4 to 28, array starts at 0 so word_length - 4 is the right index of the array
         // create new BK_tree if there isn't any allocated for this word_length
-        create_entry_index(&(h->BK_trees[word_length - 4]), e, MT_HAMMING_DIST, (DestroyFunc)destroy_entry);
-    }
-    else {
-        // insert into BK_tree. Exists for this word_length
-        ErrorCode err = insert_entry_index(h->BK_trees[word_length - 4], e);
-        if (err != EC_SUCCESS)
-            return EC_FAIL;
+        create_entry_index(&(h->BK_trees[word_length - 4]), MT_HAMMING_DIST, h->destroy);
     }
 
-    return EC_SUCCESS;
+    // insert into BK_tree. Exists for this word_length
+    return insert_entry_index(h->BK_trees[word_length - 4], e);
 }

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "useful_functions.h"
 #include "entry_list.h"
 #include "core.h"
 
@@ -10,7 +11,7 @@
 struct entry
 {
     word word;
-    void* payload;  
+    Set payload;        // we declare payload as a set
 };
 
 struct entry_list
@@ -26,6 +27,7 @@ struct entry_list_node {
     entry* value;
     entry_list_node* next;
 };
+
 
 
 ErrorCode create_entry(const word w, entry** e) {
@@ -53,7 +55,7 @@ ErrorCode create_entry(const word w, entry** e) {
 	newEntry->word[strlen(w)]='\0';
 
     // set everything else to null
-    newEntry->payload = NULL;
+    newEntry->payload = set_create(compare_ints, (DestroyFunc)free);
 
     // assign the created entry to the pointer so as to be return (pass by reference)
     *e = newEntry;
@@ -67,8 +69,9 @@ ErrorCode destroy_entry(entry *e) {
         return EC_FAIL;
     }
 
+    // deallocate memory
     free(e->word);
-    // free(e->payload);
+    set_destroy(e->payload);
     free(e);
 
     return EC_SUCCESS;
@@ -193,4 +196,20 @@ word get_entry_word(entry* e) {
         return NULL;
         
     return e->word;
+}
+
+void insert_entry_payload(entry* entr, int* query_id) {
+    if (entr == NULL || query_id == NULL) {
+        fprintf(stderr, "Fail in insert_entry_payload\n");
+        exit(EXIT_FAILURE);
+    }
+    set_insert(entr->payload, query_id);
+}
+
+Set get_entry_payload(entry* entr) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in get_entry_payload\n");
+        exit(EXIT_FAILURE);
+    }
+    return entr->payload;
 }
