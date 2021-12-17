@@ -12,6 +12,8 @@ struct entry
 {
     word word;
     Set payload;        // we declare payload as a set
+
+    bool matched;
 };
 
 struct entry_list
@@ -54,7 +56,10 @@ ErrorCode create_entry(const word w, entry** e) {
     strncpy(newEntry->word, w, strlen(w));
 	newEntry->word[strlen(w)]='\0';
 
-    // set everything else to null
+    // initialize matched to false
+    newEntry->matched = false;
+
+    // initialize set of payload
     newEntry->payload = set_create(compare_ints, (DestroyFunc)free);
 
     // assign the created entry to the pointer so as to be return (pass by reference)
@@ -212,4 +217,20 @@ Set get_entry_payload(entry* entr) {
         exit(EXIT_FAILURE);
     }
     return entr->payload;
+}
+
+void set_entry_matched(entry* entr, bool matched) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in set_entry_matched\n");
+        exit(EXIT_FAILURE);
+    }
+    entr->matched = matched;
+}
+
+entry* get_entry_matched(entry* entr) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in set_entry_matched\n");
+        exit(EXIT_FAILURE);
+    }
+    return entr->matched;    
 }

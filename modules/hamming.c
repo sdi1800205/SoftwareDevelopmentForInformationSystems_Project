@@ -48,3 +48,12 @@ entry* insert_to_hamming_index(hamIndex* h, entry *e) {
     // insert into BK_tree. Exists for this word_length
     return insert_entry_index(h->BK_trees[word_length - 4], e);
 }
+
+ErrorCode lookup_hamming_index(const word w, hamIndex* hamindx, int threshold, entry_list** result) {
+    if (hamindx == NULL || threshold < 0 || *result == NULL)
+		return EC_FAIL;
+    
+    // we use lookup for the correct tree, with words' lenght equal to target word's lenght
+    // since the hamming distance is used only for words with the same lenght
+	return lookup_entry_index(w, hamindx->BK_trees[strlen(w) - 4], threshold, result);
+}

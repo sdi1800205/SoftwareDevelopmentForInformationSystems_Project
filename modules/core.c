@@ -32,7 +32,6 @@ ErrorCode destroy_query(Pointer value) {
 
 // destroys o document
 ErrorCode destroy_document(Pointer value) {
-	free(((Document*)value)->query_ids);
 	free(value);
 	return EC_SUCCESS;
 }
@@ -195,9 +194,79 @@ ErrorCode EndQuery(QueryID query_id) {
 }
 
 ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
+	entry* target_entry;
+	
+	// initialize result list
+	entry_list* result_list;
+	create_entry_list(&result_list, NULL);
 
+	// initialize document
+	Document* doc = malloc(sizeof(*doc));
+	doc->doc_id = doc_id;
+	doc->num_res = 0;
+
+	// 
+
+	
+	word token = strtok(doc_str, " ");
+
+	while (token != NULL) {
+		create_entry(token, &target_entry);							// create a target entry to lookup the structs
+
+		// lookup the hash table
+		entry* res_entry = map_find(exact_dist, target_entry);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
+		if (res_entry != NULL) {
+			set_entry_matched(res_entry, true);						// show it matched
+			add_entry(result_list, res_entry);						// append it in the result list
+		}
+
+		// lookup the BK_tree of edit distance
+		if ((lookup_entry_index(token, edit_dist, 1, &result_list)) != EC_SUCCESS)
+			return EC_FAIL;
+
+		// lookup the Hamming BK_tree of hamming distance
+		if ((lookup_hamming_index(token, ham_dist, 3, &result_list)) != EC_SUCCESS)
+			return EC_FAIL;
+
+		token = strtok(NULL, " ");
+	}
+
+	// check the queries to find the matching ones
+	for (SetNode snode = set_first(queries); snode != SET_EOF; snode = set_next(queries, snode)) {
+		Query* query = set_node_value(queries, snode);
+		bool matched = true;
+
+		// check every entry
+		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
+			entry* entr = entry_list_node_value(lnode);
+			if (!get_entry_matched(entr)) {		// query's entry isn't in result_list
+				matched = false;
+				break;
+			}
+		}
+
+		if (matched) {
+
+		}
+	}
+
+	
+	for (entry_list_node* lnode = get_first(result_list); lnode != LIST_EOF; lnode = get_next(result_list, lnode)) {
+		entry* value = entry_list_node_value(lnode);
+		set_entry_matched(value, false);					// set matched value back to false, for the next document's word
+	}
 }
 
 ErrorCode GetNextAvailRes (DocID * p_doc_id, unsigned int * p_num_res, QueryID ** p_query_ids) {
+	// Get the first undeliverd result from "docs" and return it
+	
+	if(set_size(docs) == 0) return EC_NO_AVAIL_RES;
+	
+	Document* doc = set_first(docs);
+	*p_doc_id = doc->doc_id;
+	*p_num_res = doc->num_res;
+	*p_query_ids = doc->query_ids;
 
+	set_remove(docs, doc);
+	return EC_SUCCESS;
 }

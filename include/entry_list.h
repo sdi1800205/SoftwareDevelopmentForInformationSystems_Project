@@ -31,5 +31,7 @@ entry* entry_list_node_value(const entry_list_node*);
 word get_entry_word(entry* e);
 void insert_entry_payload(entry* entr, int* query_id);
 Set get_entry_payload(entry* entr);
+void set_entry_matched(entry*, bool);
+bool get_entry_matched(entry*);
 
 #endif //__ENTRY_H_

@@ -65,7 +65,7 @@ static int find_distance_entries(entry* a, entry* b, MatchType type) {
 // this function inserts a new entry in the tree recursively
 // and returns the node that has been inserted . In case of the entry's word already exists in the tree
 // it appends the new entry's payload to the old one and returns the old entry instead as the entry that has been updated
-entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) {
+static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) {
 	if (tree_node == NULL || input == NULL)
 		return NULL;
 	
@@ -111,8 +111,10 @@ entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) {
 // this function checks recursively which nodes/words are valid for the requested word
 static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type) {
 	int dist = find_distance_word(w, get_entry_word(tree_node->centry), type);		// find distance between requested word and current node
-	if (dist <= threshold)
-		add_entry(result, tree_node->centry);	// we add the entry of the node to the result list
+	if (dist <= threshold) {
+		set_entry_matched(tree_node->centry, true);		// we set true the value of entry that shows it has been matched with the document
+		add_entry(result, tree_node->centry);			// we add the entry of the node to the result list
+	}
 
 	// get the first node of the children's list
 	BK_Listnode listnode = BK_list_first(tree_node->children);

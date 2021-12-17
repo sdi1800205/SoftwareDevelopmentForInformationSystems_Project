@@ -9,3 +9,4 @@ typedef struct hamIndex hamIndex;
 hamIndex* create_hamming_index(DestroyFunc destroy);
 ErrorCode destroy_hamming_index(hamIndex* hamindx);
 entry* insert_hamming_index(hamIndex* hamindx, entry* entr);
+ErrorCode lookup_hamming_index(const word w, hamIndex* hamindx, int threshold, entry_list** result);
