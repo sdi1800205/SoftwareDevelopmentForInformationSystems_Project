@@ -72,16 +72,17 @@ static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) 
 	int dist = find_distance_entries(tree_node->centry, input, type);		// find the distance of 2 entries
 	// we remove duplicates, so if we have the same word to insert,
 	// we append the new entry's payload to the old one in the tree and then delete the new entry
-	if (dist == 0) {
-		// Set payload = get_entry_payload(input);					// we take the set(payload) of new entry
-		// int* new_query_id = set_get_at(payload, 0);				// the new entry has only one query_id, so we take the first object of the set
-		// insert_entry_payload(tree_node->centry, create_int(*new_query_id));		// we create a new integer because the old one is about to be deleted and append the new query_id to the old entry's set(payload)
-		// destroy_entry(input);					// we remove new entry
-		// return EC_SUCCESS;
-		entry* old_entry = tree_node->centry;
-		tree_node->centry = input;
-		return old_entry;
+	if (dist == 0 && tree_node->centry != input) {
+		Set payload = get_entry_payload(input);					// we take the set(payload) of new entry
+		if (payload != NULL && set_size(payload) > 0) {
+			int* new_query_id = set_get_at(payload, 0);				// the new entry has only one query_id, so we take the first object of the set
+			insert_entry_payload(tree_node->centry, create_int(*new_query_id));		// we create a new integer because the old one is about to be deleted and append the new query_id to the old entry's set(payload)
+		}
+		destroy_entry(input);					// we remove new entry
+		return tree_node->centry;
 	}
+	else if (tree_node->centry == input)	// the same entry has been given to add again
+		return input;
 
 	// get the first node of the children's list
 	BK_Listnode listnode = BK_list_first(tree_node->children);
@@ -111,7 +112,7 @@ static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) 
 // this function checks recursively which nodes/words are valid for the requested word
 static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type) {
 	int dist = find_distance_word(w, get_entry_word(tree_node->centry), type);		// find distance between requested word and current node
-	if (dist <= threshold) {
+	if (dist <= get_entry_matchdist(tree_node->centry)) {
 		set_entry_matched(tree_node->centry, true);		// we set true the value of entry that shows it has been matched with the document
 		add_entry(result, tree_node->centry);			// we add the entry of the node to the result list
 	}
