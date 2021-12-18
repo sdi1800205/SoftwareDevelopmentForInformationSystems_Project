@@ -197,7 +197,7 @@ void test_destroy(void) {
 	// Απλά εκτελούμε την destroy, για να ελέγξουμε αν όντως δουλεύει
 	// σωστά τρέχουμε το test με valgrind.
 
-	Deque deque = deque_create(1, free);
+	Deque deque = deque_create(1, (DestroyFunc)free);
 
 	deque_set_at(deque, 0, malloc(1));
 	deque_insert_last(deque, malloc(1));

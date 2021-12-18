@@ -93,8 +93,7 @@ int hamming_distance(word a, int length_a, word b, int length_b) {
     }
 
     // check all the characters until one or both words end
-    int i = -1;
-    while (a[++i] != '\0') {
+    for (int i = 0; i < length_a; i++) {
         if (a[i] != b[i])	// if the characters are different, add one more to the difference number value
             diff++;
     }

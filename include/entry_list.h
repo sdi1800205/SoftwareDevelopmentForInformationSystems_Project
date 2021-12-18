@@ -28,10 +28,16 @@ ErrorCode destroy_entry_list(entry_list* el);
 
 // Extra functions
 entry* entry_list_node_value(const entry_list_node*);
-word get_entry_word(entry* e);
+
+// set
 void insert_entry_payload(entry* entr, int* query_id);
-Set get_entry_payload(entry* entr);
 void set_entry_matched(entry*, bool);
+void set_entry_matchdist(entry*, int);
+
+// get
+word get_entry_word(entry* e);
+Set get_entry_payload(entry* entr);
 bool get_entry_matched(entry*);
+int get_entry_matchdist(entry*);
 
 #endif //__ENTRY_H_

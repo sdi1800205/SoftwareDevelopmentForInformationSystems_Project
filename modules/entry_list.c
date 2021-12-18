@@ -13,6 +13,7 @@ struct entry
     word word;
     Set payload;        // we declare payload as a set
 
+    int matching_dist;      // keep matching distance of this entry
     bool matched;
 };
 
@@ -52,9 +53,12 @@ ErrorCode create_entry(const word w, entry** e) {
     }
 
     // copy the given word into newEntry->word
-    // strcpy(newEntry->word, w);
-    strncpy(newEntry->word, w, strlen(w));
+    strcpy(newEntry->word, w);
+    // strncpy(newEntry->word, w, strlen(w));
 	newEntry->word[strlen(w)]='\0';
+
+    // initialize matching distance
+    newEntry->matching_dist = -1;
 
     // initialize matched to false
     newEntry->matched = false;
@@ -227,10 +231,26 @@ void set_entry_matched(entry* entr, bool matched) {
     entr->matched = matched;
 }
 
-entry* get_entry_matched(entry* entr) {
+bool get_entry_matched(entry* entr) {
     if (entr == NULL) {
         fprintf(stderr, "Fail in set_entry_matched\n");
         exit(EXIT_FAILURE);
     }
     return entr->matched;    
+}
+
+void set_entry_matchdist(entry* entr, int dist) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in set_entry_matchdist\n");
+        exit(EXIT_FAILURE);
+    }
+    entr->matching_dist = dist;
+}
+
+int get_entry_matchdist(entry* entr) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in set_entry_matchdist\n");
+        exit(EXIT_FAILURE);
+    }
+    return entr->matching_dist;
 }

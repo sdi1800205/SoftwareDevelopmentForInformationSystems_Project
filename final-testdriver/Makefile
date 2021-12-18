@@ -25,13 +25,19 @@
 #          Fuad Jamour <fuad.jamour@kaust.edu.sa>
 #
 # Current version: 1.0 (initial release)
+
+# paths
+INCLUDE = ../include
+MODULES = ../modules
 	
 TEST_NEW_O=test_driver/test_through.o
-IMPL_O=ref_impl/core.o
+IMPL_O=$(MODULES)/core.o
+
+OBJS = $(MODULES)/ADTDeque.o $(MODULES)/ADTSet.o $(MODULES)/ADTMap.o $(MODULES)/BK_tree.o $(MODULES)/BK_List.o $(MODULES)/distances.o $(MODULES)/entry_list.o $(MODULES)/hamming.o $(MODULES)/useful_functions.o
 
 CC  = gcc
 CXX = g++
-CFLAGS=-O3 -fPIC -Wall -g -I. -I./include
+CFLAGS=-O3 -fPIC -Wall -g -I. -I$(INCLUDE)
 CXXFLAGS=$(CFLAGS)
 LDFLAGS=-lpthread
 
@@ -42,11 +48,14 @@ LIBRARY=core
 all: $(PROGRAMS)
 
 lib: $(IMPL_O)
-	$(CXX) $(CXXFLAGS) -shared -o lib$(LIBRARY).so $(IMPL_O)
+	$(CC) $(CXXFLAGS) -shared -o lib$(LIBRARY).so $(IMPL_O)
 	
-new-testdriver: lib $(TEST_NEW_O)
-	$(CXX) $(CXXFLAGS) -o testdriver $(TEST_NEW_O) ./lib$(LIBRARY).so
+new-testdriver: lib $(TEST_NEW_O) $(OBJS)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o testdriver $(TEST_NEW_O) ./lib$(LIBRARY).so
 
 clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt
-	find . -name '*.o' -print | xargs rm -f
+	find . -name '*.o' -print | xargs rm -f $(OBJS)
+
+valgrind: new-testdriver
+	valgrind --leak-check=full ./testdriver

@@ -114,7 +114,7 @@ static void rehash(Map map) {
 				map_insert(map, pair->key, pair->value);
 			}
 			//Αποδεσμεύουμε το παλιό set χωρίς να διαγράψουμε τα παλιά στοιχεία που έγιναν copy στον καινούργιο πίνακα ώστε να μήν έχουμε leaks
-			set_set_destroy_value(old_array[i].set, free);		// στέλνουμε την free και όχι την destroy_pair για να αποδεσμεύσει το Pair αλλά όχι και τους δείκτες μέσα του
+			set_set_destroy_value(old_array[i].set, (DestroyFunc)free);		// στέλνουμε την free και όχι την destroy_pair για να αποδεσμεύσει το Pair αλλά όχι και τους δείκτες μέσα του
 			set_destroy(old_array[i].set);
 			old_array[i].set = NULL;
 		}
