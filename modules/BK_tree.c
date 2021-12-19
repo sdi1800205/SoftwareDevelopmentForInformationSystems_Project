@@ -72,17 +72,18 @@ static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) 
 	int dist = find_distance_entries(tree_node->centry, input, type);		// find the distance of 2 entries
 	// we remove duplicates, so if we have the same word to insert,
 	// we append the new entry's payload to the old one in the tree and then delete the new entry
-	if (dist == 0 && tree_node->centry != input) {
-		Set payload = get_entry_payload(input);					// we take the set(payload) of new entry
-		if (payload != NULL && set_size(payload) > 0) {
-			int* new_query_id = set_get_at(payload, 0);				// the new entry has only one query_id, so we take the first object of the set
-			insert_entry_payload(tree_node->centry, create_int(*new_query_id));		// we create a new integer because the old one is about to be deleted and append the new query_id to the old entry's set(payload)
+	if (dist == 0) {
+		if (tree_node->centry != input) {							// check if it is the same entry
+			Set payload = get_entry_payload(input);					// we take the set(payload) of new entry
+			if (payload != NULL && set_size(payload) > 0) {
+				int* new_query_id = set_get_at(payload, 0);				// the new entry has only one query_id, so we take the first object of the set
+				insert_entry_payload(tree_node->centry, create_int(*new_query_id));		// we create a new integer because the old one is about to be deleted and append the new query_id to the old entry's set(payload)
+			}
+			return tree_node->centry;		// return entry that was updated
 		}
-		destroy_entry(input);					// we remove new entry
-		return tree_node->centry;
+		else								// case of the 2 entries being the same
+			return input;					// return the entry
 	}
-	else if (tree_node->centry == input)	// the same entry has been given to add again
-		return input;
 
 	// get the first node of the children's list
 	BK_Listnode listnode = BK_list_first(tree_node->children);
@@ -202,7 +203,11 @@ entry* insert_entry_index(Index* indx, entry* entr) {
 ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result) {
 	if (ix == NULL || threshold < 0 || *result == NULL)
 		return EC_FAIL;
-	*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type);		// we call a recursive function for this job
+	else if (ix->root == NULL)	// case of tree being empty
+		return EC_SUCCESS;		// this is no mistake, its a possible outcome so continue
+	else
+		*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type);		// we call a recursive function for this job
+	
 	return EC_SUCCESS;
 }
 

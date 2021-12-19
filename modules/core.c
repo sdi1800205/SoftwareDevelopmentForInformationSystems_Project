@@ -71,9 +71,10 @@ Set docs;
 
 
 //////////// structs for matchtypes ////////////
-Map exact_dist;
-Index* edit_dist;
-hamIndex* ham_dist;
+// we create structs depend on the match_type and the match_distance
+Map exact_dist;				// struct for exact distance
+Index* edit_dist;			// struct for edit distance
+hamIndex* ham_dist;			// struct for hamming distance
 
 //////////// core.h functions ///////////////
 
@@ -92,6 +93,7 @@ ErrorCode InitializeIndex() {
 
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
+
 	return EC_SUCCESS;
 }
 
@@ -114,7 +116,6 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 	// strcpy(query->str, query_str);
 
 	create_entry_list(&(query->entrylist), NULL);		// we don't want the entry_list to destroy the entries because the struct will do that
-
 
 	// add query in the set of queries
 	set_insert(queries, query);
@@ -151,11 +152,15 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 			create_entry((word)token, &entr);						// create entry
 			set_entry_matchdist(entr, match_dist);					// set entry's match_dist
 			insert_entry_payload(entr, create_int(query_id));		// append query_id in payload
-			entry* inserted = insert_entry_index(edit_dist, entr);					// insert entry in tree
+			entry* inserted = insert_entry_index(edit_dist, entr);		// insert entry in tree with correct match_dist
 			if (inserted == NULL) {				// the insertion or updating went wrong
 				fprintf(stderr, "Fail in StartQuery->MT_EDIT_DIST->insert_entry_index\n");
 				exit(EXIT_FAILURE);
 			}
+			
+			// check if entry was inserted or an old one just update its payload
+			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
+				destroy_entry(entr);		// destroy new entry because it didn't inserted
 
 			add_entry(query->entrylist, inserted);			// we add entry that has been inserted or updated in current query's entry_list
 
@@ -169,11 +174,15 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 			create_entry((word)token, &entr);
 			set_entry_matchdist(entr, match_dist);					// set entry's match_dist
 			insert_entry_payload(entr, create_int(query_id));
-			entry* inserted = insert_hamming_index(ham_dist, entr);
+			entry* inserted = insert_hamming_index(ham_dist, entr);			// insert entry in tree with correct match_dist
 			if (inserted == NULL) {				// the insertion or updating went wrong
 				fprintf(stderr, "Fail in StartQuery->MT_HAMMING_DIST->insert_entry_index\n");
 				exit(EXIT_FAILURE);
 			}
+
+			// check if entry was inserted or an old one just update its payload
+			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
+				destroy_entry(entr);		// destroy new entry because it didn't inserted
 
 			add_entry(query->entrylist, inserted);			// we add entry that has been inserted or updated in current query's entry_list
 
@@ -226,9 +235,24 @@ ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
 	doc->doc_id = doc_id;
 	doc->num_res = 0;
 
+	// we create a set for doc's words, so that we won't check the same word > 1 times
+	Set doc_words = set_create(compare_strings, (DestroyFunc)free);		// we want to deallocate the memory for the words of the doc when the set is going to be destroyed
+
 	word token = strtok((word)doc_str, " ");
 
 	while (token != NULL) {
+		// deduplication of doc's words
+		if ((set_find(doc_words, token)) != NULL) {	// if the word exists in the set means that it has already been checked
+			token = strtok(NULL, " ");		// take new word
+			continue;
+		}
+		else {										// case of not found the word in the set
+			char* new_word = malloc((strlen(token)+1) * sizeof(char));
+			set_insert(doc_words, strcpy(new_word, token));				// put the new word in the set
+		}
+
+		// start matching
+		
 		create_entry(token, &target_entry);							// create a target entry to lookup the structs
 
 		// lookup the hash table
@@ -237,6 +261,8 @@ ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
 			set_entry_matched(res_entry, true);						// show it matched
 			add_entry(result_list, res_entry);						// append it in the result list
 		}
+
+		destroy_entry(target_entry);		// destroy target entry
 
 		// lookup the BK_tree of edit distance
 		for (int i = 1; i <= 3; i++) {
@@ -249,18 +275,17 @@ ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
 			if ((lookup_hamming_index(token, ham_dist, i, &result_list)) != EC_SUCCESS)
 				return EC_FAIL;
 		}
-
-		destroy_entry(target_entry);		// destroy target entry
 		
 		token = strtok(NULL, " ");
 	}
+	set_destroy(doc_words);		// destroy the set of document's words
 
 	Deque match_queries = deque_create(0, NULL);		// create a deque to store temporary the matching queries
 
 	// check the queries to find the matching ones
 	for (SetNode snode = set_first(queries); snode != SET_EOF; snode = set_next(queries, snode)) {
 		Query* query = set_node_value(queries, snode);
-		bool matched = true;
+		bool matched = true;		// if all the query's words are true then this variable will remain true, else will turn to false
 
 		// check every entry
 		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
