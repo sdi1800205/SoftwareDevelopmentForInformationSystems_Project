@@ -71,19 +71,9 @@ static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) 
 	
 	int dist = find_distance_entries(tree_node->centry, input, type);		// find the distance of 2 entries
 	// we remove duplicates, so if we have the same word to insert,
-	// we append the new entry's payload to the old one in the tree and then delete the new entry
-	if (dist == 0) {
-		if (tree_node->centry != input) {							// check if it is the same entry
-			Set payload = get_entry_payload(input);					// we take the set(payload) of new entry
-			if (payload != NULL && set_size(payload) > 0) {
-				QueryID* new_query_id = set_get_at(payload, 0);				// the new entry has only one query_id, so we take the first object of the set
-				insert_entry_payload(tree_node->centry, new_query_id);		// we create a new integer because the old one is about to be deleted and append the new query_id to the old entry's set(payload)
-			}
-			return tree_node->centry;		// return entry that was updated
-		}
-		else								// case of the 2 entries being the same
-			return input;					// return the entry
-	}
+	// we just ignore new entry and keep old one
+	if (dist == 0)
+		return tree_node->centry;		// return old entry
 
 	// get the first node of the children's list
 	BK_Listnode listnode = BK_list_first(tree_node->children);

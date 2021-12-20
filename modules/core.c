@@ -33,16 +33,6 @@ typedef struct Document
 
 //////////// extra functions ////////////////
 
-// hash functions for entry that calls hash string function for entry's word
-// uint hash_entry(Pointer value) {
-// 	return hash_string(get_entry_word((entry*)value));
-// }
-
-// compares 2 entries and returns <0 if a is smaller, 0 if equal or >0 if a is bigger
-int compare_entries(Pointer a, Pointer b) {
-	return exact_distance(get_entry_word((entry*)a), get_entry_word((entry*)b));
-}
-
 // compares 2 integers (just like the declaration of CompareFunc says in common_types.h)
 int compare_queries(Pointer a, Pointer b) {
     return ((Query*)a)->query_id - ((Query*)b)->query_id;
@@ -132,14 +122,10 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 		while (token != NULL) {
 			entry* old_entry = map_find(exact_dist, token);		// check if the entry's word already exists in the map
 
-			if (old_entry != NULL) {									// case in which the entry's word already exists in the map
-				Set old_entry_payload = get_entry_payload(old_entry);	// get old entry's payload
-				set_insert(old_entry_payload, &(query->query_id));		// append in payload the new query_id
+			if (old_entry != NULL)										// case in which the entry's word already exists in the map
 				entr = old_entry;										// keep old entry in current entries value so the query can have access to it, since the new entry destroyed
-			}
 			else {														// case of entry's word first appearance
 				create_entry(token, &entr);								// create a new entry for current word
-				insert_entry_payload(entr, &(query->query_id));			// append in entry's payload the query_id from which it came
 				map_insert(exact_dist, get_entry_word(entr), entr);						// we pass as key and value the same value, so the set_find returns the entry we search as a key
 			}
 			add_entry(query->entrylist, entr);						// we add entry in current query's entry_list
@@ -150,7 +136,6 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 	case MT_EDIT_DIST:
 		while (token != NULL) {
 			create_entry(token, &entr);						// create entry
-			insert_entry_payload(entr, &(query->query_id));				// append in entry's payload the query_id
 			entry* inserted = insert_entry_index(edit_dist, entr);		// insert entry in tree with correct match_dist
 			if (inserted == NULL) {				// the insertion or updating went wrong
 				fprintf(stderr, "Fail in StartQuery->MT_EDIT_DIST->insert_entry_index\n");
@@ -171,7 +156,6 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 			// same as in MT_EDIT_DIST
 
 			create_entry(token, &entr);
-			insert_entry_payload(entr, &(query->query_id));
 			entry* inserted = insert_hamming_index(ham_dist, entr);			// insert entry in tree with correct match_dist
 			if (inserted == NULL) {				// the insertion or updating went wrong
 				fprintf(stderr, "Fail in StartQuery->MT_HAMMING_DIST->insert_entry_index\n");
@@ -198,27 +182,9 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 
 ErrorCode EndQuery(QueryID query_id) {
 	Query target_query = {query_id, NULL, -1, -1};
-	Query* query = set_find(queries, &target_query);		// get query from the set of queries
-	if (query == NULL) {
-		printf("EndQuery: Fail in set_find\n");
-		return EC_FAIL;
-	}
-
-	bool result = true;
-
-	// for every entry of this query delete this query's id from their payload, in any struct they exist
-	for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
-		entry* value = entry_list_node_value(lnode);			// get entry from list_node
-		result = set_remove(get_entry_payload(value), &query_id);				// remove from payload the query_id
-		if (!result) {
-			printf("EndQuery: fail in payload\n");
-			return EC_FAIL;
-		}
-	}
 	
 	// remove query from set of queries
-	result = set_remove(queries, query);
-	if (!result) {
+	if (!(set_remove(queries, &target_query))) {
 		printf("EndQuery: fail in set_remove\n");
 		return EC_FAIL;
 	}

@@ -30,13 +30,11 @@ ErrorCode destroy_entry_list(entry_list* el);
 entry* entry_list_node_value(const entry_list_node*);
 
 // set
-void insert_entry_payload(entry* entr, QueryID* query_id);
 void set_entry_matched(entry*, bool);
 void set_entry_dist(entry*, int);
 
 // get
 word get_entry_word(entry* e);
-Set get_entry_payload(entry* entr);
 bool get_entry_matched(entry*);
 int get_entry_dist(entry*);
 

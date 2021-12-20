@@ -57,5 +57,8 @@ clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt
 	find . -name '*.o' -print | xargs rm -f $(OBJS)
 
+run: new-testdriver
+	./testdriver
+
 valgrind: new-testdriver
 	valgrind --leak-check=full --show-leak-kinds=all ./testdriver

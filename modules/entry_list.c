@@ -11,7 +11,7 @@
 struct entry
 {
     word word;
-    Set payload;        // we declare payload as a set
+    Pointer payload;        // with this implementation payload isn't used
 
     int dist;               // variable that shows the distance between a word and this word
     bool matched;           // variable that shows if this entry has made a match with a word
@@ -56,7 +56,7 @@ ErrorCode create_entry(const word w, entry** e) {
     strcpy(newEntry->word, w);
     newEntry->dist = MAX_INT;
     newEntry->matched = false;
-    newEntry->payload = set_create(compare_ints, NULL);         // in the payload are going to pass the pointers of ids of struct query, so the queries are obliged to destroy the ids
+    newEntry->payload = NULL;
 
     // assign the created entry to the pointer so as to be return (pass by reference)
     *e = newEntry;
@@ -72,7 +72,6 @@ ErrorCode destroy_entry(entry *e) {
 
     // deallocate memory
     free(e->word);
-    set_destroy(e->payload);
     free(e);
 
     return EC_SUCCESS;
@@ -194,14 +193,6 @@ entry* entry_list_node_value(const entry_list_node* node) {
 
 // set
 
-void insert_entry_payload(entry* entr, QueryID* query_id) {
-    if (entr == NULL || query_id == NULL) {
-        fprintf(stderr, "Fail in insert_entry_payload\n");
-        exit(EXIT_FAILURE);
-    }
-    set_insert(entr->payload, query_id);
-}
-
 void set_entry_matched(entry* entr, bool matched) {
     if (entr == NULL) {
         fprintf(stderr, "Fail in set_entry_matched\n");
@@ -225,14 +216,6 @@ word get_entry_word(entry* e) {
         return NULL;
         
     return e->word;
-}
-
-Set get_entry_payload(entry* entr) {
-    if (entr == NULL) {
-        fprintf(stderr, "Fail in get_entry_payload\n");
-        exit(EXIT_FAILURE);
-    }
-    return entr->payload;
 }
 
 bool get_entry_matched(entry* entr) {
