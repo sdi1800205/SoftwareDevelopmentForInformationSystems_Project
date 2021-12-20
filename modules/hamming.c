@@ -37,6 +37,9 @@ ErrorCode destroy_hamming_index(hamIndex* h) {
         }
     }
 
+    // destroy the index
+    free(h);
+
     return EC_SUCCESS;
 }
 

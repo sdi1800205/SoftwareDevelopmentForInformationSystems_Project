@@ -4,39 +4,22 @@
 
 #include "distances.h"
 
-
-//////////// functions for entries /////////////////
-int exact_distance_entry(Pointer a, Pointer b) {
-    word a_word = get_entry_word((entry*)a);
-    word b_word = get_entry_word((entry*)b);
-    return exact_distance(a_word, strlen(a_word), b_word, strlen(b_word));
-}
-
-int edit_distance_entry(entry* a, entry* b) {
-    word a_word = get_entry_word(a);
-    word b_word = get_entry_word(b);
-    return edit_distance(a_word, strlen(a_word), b_word, strlen(b_word));
-}
-int hamming_distance_entry(entry* a, entry* b) {
-    word a_word = get_entry_word(a);
-    word b_word = get_entry_word(b);
-    return hamming_distance(a_word, strlen(a_word), b_word, strlen(b_word));
-}
-
-//////////// functions for char*/word ////////////////////
-
-int exact_distance(word a, int length_a, word b, int length_b) {
-    int i = -1, j = -1, diff = 0;
-    while(a[++i] != '\0' && b[++j] != '\0') {
-        if (a[i] != b[j])
-            diff++;
+int exact_distance(word a, word b) {
+    int i = -1;
+    while (a[++i] != '\0' && b[i] != '\0') {
+        if (a[i] < b[i])
+			return -1;
+		else if (a[i] == b[i])
+			continue;
+		else
+			return 1;
     }
-    if (length_a > length_b)            // using this if because abs is slower
-        diff += length_a - length_b;
-    else
-        diff += length_b - length_a;
-
-    return diff;
+    if (a[i] == '\0') {
+		if (b[i] == '\0')
+			return 0;
+		return -1;
+	}
+	return 1;
 }
 
 int edit_distance(word a,int na,word b,int nb) {

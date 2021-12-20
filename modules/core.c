@@ -17,7 +17,6 @@
 typedef struct Query
 {
 	QueryID query_id;
-	// char str[MAX_QUERY_LENGTH];
 	entry_list* entrylist;			// keep the words of the query into entries
 	MatchType match_type;
 	unsigned int match_dist;
@@ -35,8 +34,13 @@ typedef struct Document
 //////////// extra functions ////////////////
 
 // hash functions for entry that calls hash string function for entry's word
-uint hash_entry(Pointer value) {
-	return hash_string(get_entry_word((entry*)value));
+// uint hash_entry(Pointer value) {
+// 	return hash_string(get_entry_word((entry*)value));
+// }
+
+// compares 2 entries and returns <0 if a is smaller, 0 if equal or >0 if a is bigger
+int compare_entries(Pointer a, Pointer b) {
+	return exact_distance(get_entry_word((entry*)a), get_entry_word((entry*)b));
 }
 
 // compares 2 integers (just like the declaration of CompareFunc says in common_types.h)
@@ -84,9 +88,9 @@ ErrorCode InitializeIndex() {
 	docs = set_create(compare_documents, destroy_document);
 
 	// create dictionary for exact distance
-	// we use the same entry as a key and value in the dictionary, so only one of them should be deleted when its time
-	exact_dist = map_create(exact_distance_entry, (DestroyFunc)destroy_entry, NULL);
-	map_set_hash_function(exact_dist, hash_entry);
+	// we use the entry->word as a key and entry as a value in the dictionary, so to delete the it only takes to delete entry
+	exact_dist = map_create(compare_strings, NULL, (DestroyFunc)destroy_entry);		//(key, value) -> (word, entry), "word" = entry->word
+	map_set_hash_function(exact_dist, hash_string);
 
 	// create BK_tree for edit distance
 	create_entry_index(&edit_dist, MT_EDIT_DIST, (DestroyFunc)destroy_entry);
@@ -113,9 +117,7 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 	query->query_id = query_id;
 	query->match_type = match_type;
 	query->match_dist = match_dist;
-	// strcpy(query->str, query_str);
-
-	create_entry_list(&(query->entrylist), NULL);		// we don't want the entry_list to destroy the entries because the struct will do that
+	create_entry_list(&(query->entrylist), NULL);		// we don't want the entry_list to destroy the entries because the structs will do that
 
 	// add query in the set of queries
 	set_insert(queries, query);
@@ -128,19 +130,17 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 	switch (match_type)	{
 	case MT_EXACT_MATCH:
 		while (token != NULL) {
-			create_entry((word)token, &entr);					// create a new entry for current word
+			entry* old_entry = map_find(exact_dist, token);		// check if the entry's word already exists in the map
 
-			entry* old_entry = map_find(exact_dist, entr);		// check if the entry's word already exists in the map
 			if (old_entry != NULL) {									// case in which the entry's word already exists in the map
-				Set old_entry_set = get_entry_payload(old_entry);		// get old entry's payload
-				set_insert(old_entry_set, create_int(query_id));		// append in payload the new query_id
-				destroy_entry(entr);									// destroy new entry
+				Set old_entry_payload = get_entry_payload(old_entry);	// get old entry's payload
+				set_insert(old_entry_payload, &(query->query_id));		// append in payload the new query_id
 				entr = old_entry;										// keep old entry in current entries value so the query can have access to it, since the new entry destroyed
 			}
-			else {												// case of entry's word first appearance
-				set_entry_matchdist(entr, match_dist);					// set entry's match_dist
-				insert_entry_payload(entr, create_int(query_id));		// append in entry's payload the query_id from which it came
-				map_insert(exact_dist, entr, entr);						// we pass as key and value the same value, so the set_find returns the entry we search as a key
+			else {														// case of entry's word first appearance
+				create_entry(token, &entr);								// create a new entry for current word
+				insert_entry_payload(entr, &(query->query_id));			// append in entry's payload the query_id from which it came
+				map_insert(exact_dist, get_entry_word(entr), entr);						// we pass as key and value the same value, so the set_find returns the entry we search as a key
 			}
 			add_entry(query->entrylist, entr);						// we add entry in current query's entry_list
 
@@ -149,9 +149,8 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 		break;
 	case MT_EDIT_DIST:
 		while (token != NULL) {
-			create_entry((word)token, &entr);						// create entry
-			set_entry_matchdist(entr, match_dist);					// set entry's match_dist
-			insert_entry_payload(entr, create_int(query_id));		// append query_id in payload
+			create_entry(token, &entr);						// create entry
+			insert_entry_payload(entr, &(query->query_id));				// append in entry's payload the query_id
 			entry* inserted = insert_entry_index(edit_dist, entr);		// insert entry in tree with correct match_dist
 			if (inserted == NULL) {				// the insertion or updating went wrong
 				fprintf(stderr, "Fail in StartQuery->MT_EDIT_DIST->insert_entry_index\n");
@@ -171,9 +170,8 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 		while (token != NULL) {
 			// same as in MT_EDIT_DIST
 
-			create_entry((word)token, &entr);
-			set_entry_matchdist(entr, match_dist);					// set entry's match_dist
-			insert_entry_payload(entr, create_int(query_id));
+			create_entry(token, &entr);
+			insert_entry_payload(entr, &(query->query_id));
 			entry* inserted = insert_hamming_index(ham_dist, entr);			// insert entry in tree with correct match_dist
 			if (inserted == NULL) {				// the insertion or updating went wrong
 				fprintf(stderr, "Fail in StartQuery->MT_HAMMING_DIST->insert_entry_index\n");
@@ -201,84 +199,84 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 ErrorCode EndQuery(QueryID query_id) {
 	Query target_query = {query_id, NULL, -1, -1};
 	Query* query = set_find(queries, &target_query);		// get query from the set of queries
-	if (query == NULL)
+	if (query == NULL) {
+		printf("EndQuery: Fail in set_find\n");
 		return EC_FAIL;
+	}
 
 	bool result = true;
 
 	// for every entry of this query delete this query's id from their payload, in any struct they exist
 	for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
 		entry* value = entry_list_node_value(lnode);			// get entry from list_node
-		Set payload = get_entry_payload(value);					// get entry's payload
-		result = set_remove(payload, &query_id);				// remove from payload the query_id
-		if (!result)
+		result = set_remove(get_entry_payload(value), &query_id);				// remove from payload the query_id
+		if (!result) {
+			printf("EndQuery: fail in payload\n");
 			return EC_FAIL;
+		}
 	}
 	
 	// remove query from set of queries
 	result = set_remove(queries, query);
-	if (!result)
+	if (!result) {
+		printf("EndQuery: fail in set_remove\n");
 		return EC_FAIL;
+	}
 
 	return EC_SUCCESS;
 }
 
 ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
-	entry* target_entry;
-	
 	// initialize result list
 	entry_list* result_list;
-	create_entry_list(&result_list, NULL);
+	create_entry_list(&result_list, NULL);			// we dont want result list to destroy entries, structs do that
 
 	// initialize document
 	Document* doc = malloc(sizeof(*doc));
 	doc->doc_id = doc_id;
 	doc->num_res = 0;
 
-	// we create a set for doc's words, so that we won't check the same word > 1 times
-	Set doc_words = set_create(compare_strings, (DestroyFunc)free);		// we want to deallocate the memory for the words of the doc when the set is going to be destroyed
+	// we create a map for doc's words, so that we won't check the same word > 1 times
+	Map doc_words = map_create(compare_strings, (DestroyFunc)free, NULL);		// (key, value) -> (word, word), so we delete only key or value
+	map_set_hash_function(doc_words, hash_string);
 
 	word token = strtok((word)doc_str, " ");
 
 	while (token != NULL) {
 		// deduplication of doc's words
-		if ((set_find(doc_words, token)) != NULL) {	// if the word exists in the set means that it has already been checked
+		if ((map_find(doc_words, token)) != NULL) {	// if the word exists in the set means that it has already been checked
 			token = strtok(NULL, " ");		// take new word
 			continue;
 		}
 		else {										// case of not found the word in the set
 			char* new_word = malloc((strlen(token)+1) * sizeof(char));
-			set_insert(doc_words, strcpy(new_word, token));				// put the new word in the set
+			strcpy(new_word, token);
+			map_insert(doc_words, new_word, new_word);				// put the new word in the set
 		}
 
 		// start matching
 		
-		create_entry(token, &target_entry);							// create a target entry to lookup the structs
-
 		// lookup the hash table
-		entry* res_entry = map_find(exact_dist, target_entry);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
+		entry* res_entry = map_find(exact_dist, token);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
 		if (res_entry != NULL) {
+			set_entry_dist(res_entry, 0);							// set dist = 0 because it is from exact
 			set_entry_matched(res_entry, true);						// show it matched
 			add_entry(result_list, res_entry);						// append it in the result list
 		}
 
-		destroy_entry(target_entry);		// destroy target entry
+		// lookup trees with the higher match_dist value so it considers every match_dist from 1 to 3
 
 		// lookup the BK_tree of edit distance
-		for (int i = 1; i <= 3; i++) {
-			if ((lookup_entry_index(token, edit_dist, i, &result_list)) != EC_SUCCESS)
-				return EC_FAIL;
-		}
+		if ((lookup_entry_index(token, edit_dist, 3, &result_list)) != EC_SUCCESS)
+			return EC_FAIL;
 
 		// lookup the Hamming BK_tree of hamming distance
-		for (int i = 1; i <= 3; i++) {
-			if ((lookup_hamming_index(token, ham_dist, i, &result_list)) != EC_SUCCESS)
-				return EC_FAIL;
-		}
+		if ((lookup_hamming_index(token, ham_dist, 3, &result_list)) != EC_SUCCESS)
+			return EC_FAIL;
 		
 		token = strtok(NULL, " ");
 	}
-	set_destroy(doc_words);		// destroy the set of document's words
+	map_destroy(doc_words);		// destroy the map of document's words
 
 	Deque match_queries = deque_create(0, NULL);		// create a deque to store temporary the matching queries
 
@@ -290,7 +288,7 @@ ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
 		// check every entry
 		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
 			entry* entr = entry_list_node_value(lnode);
-			if (!get_entry_matched(entr)) {		// query's entry isn't in result_list
+			if (!(get_entry_matched(entr) && (get_entry_dist(entr) <= query->match_dist))) {		// check if the entry for this query is valid
 				matched = false;
 				break;
 			}
@@ -322,6 +320,7 @@ ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
 	// initialize all the entries' matched values for the next document
 	for (entry_list_node* lnode = get_first(result_list); lnode != LIST_EOF; lnode = get_next(result_list, lnode)) {
 		entry* value = entry_list_node_value(lnode);
+		set_entry_dist(value, MAX_INT);
 		set_entry_matched(value, false);					// set matched value back to false, for the next document's word
 	}
 
@@ -339,12 +338,13 @@ ErrorCode GetNextAvailRes (DocID * p_doc_id, unsigned int * p_num_res, QueryID *
 	
 	if(set_size(docs) == 0) return EC_NO_AVAIL_RES;
 	
-	Document* doc = set_node_value(docs, set_first(docs));
+	Document* doc = set_get_at(docs, 0);		// get first document
 	*p_doc_id = doc->doc_id;
 	*p_num_res = doc->num_res;
 	*p_query_ids = doc->query_ids;
 
-	set_remove(docs, doc);
+	if (!(set_remove(docs, doc)))
+		return EC_FAIL;
 
 	return EC_SUCCESS;
 }

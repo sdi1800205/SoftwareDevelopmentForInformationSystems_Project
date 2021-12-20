@@ -13,8 +13,8 @@ struct entry
     word word;
     Set payload;        // we declare payload as a set
 
-    int matching_dist;      // keep matching distance of this entry
-    bool matched;
+    int dist;               // variable that shows the distance between a word and this word
+    bool matched;           // variable that shows if this entry has made a match with a word
 };
 
 struct entry_list
@@ -52,19 +52,11 @@ ErrorCode create_entry(const word w, entry** e) {
         return EC_NO_AVAIL_RES;
     }
 
-    // copy the given word into newEntry->word
+    // initialize values
     strcpy(newEntry->word, w);
-    // strncpy(newEntry->word, w, strlen(w));
-	newEntry->word[strlen(w)]='\0';
-
-    // initialize matching distance
-    newEntry->matching_dist = -1;
-
-    // initialize matched to false
+    newEntry->dist = MAX_INT;
     newEntry->matched = false;
-
-    // initialize set of payload
-    newEntry->payload = set_create(compare_ints, (DestroyFunc)free);
+    newEntry->payload = set_create(compare_ints, NULL);         // in the payload are going to pass the pointers of ids of struct query, so the queries are obliged to destroy the ids
 
     // assign the created entry to the pointer so as to be return (pass by reference)
     *e = newEntry;
@@ -200,27 +192,14 @@ entry* entry_list_node_value(const entry_list_node* node) {
     return node->value;
 }
 
-word get_entry_word(entry* e) {
-    if (e == NULL)
-        return NULL;
-        
-    return e->word;
-}
+// set
 
-void insert_entry_payload(entry* entr, int* query_id) {
+void insert_entry_payload(entry* entr, QueryID* query_id) {
     if (entr == NULL || query_id == NULL) {
         fprintf(stderr, "Fail in insert_entry_payload\n");
         exit(EXIT_FAILURE);
     }
     set_insert(entr->payload, query_id);
-}
-
-Set get_entry_payload(entry* entr) {
-    if (entr == NULL) {
-        fprintf(stderr, "Fail in get_entry_payload\n");
-        exit(EXIT_FAILURE);
-    }
-    return entr->payload;
 }
 
 void set_entry_matched(entry* entr, bool matched) {
@@ -231,6 +210,31 @@ void set_entry_matched(entry* entr, bool matched) {
     entr->matched = matched;
 }
 
+void set_entry_dist(entry* entr, int dist) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in set_entry_matchdist\n");
+        exit(EXIT_FAILURE);
+    }
+    entr->dist = dist;    
+}
+
+// get
+
+word get_entry_word(entry* e) {
+    if (e == NULL)
+        return NULL;
+        
+    return e->word;
+}
+
+Set get_entry_payload(entry* entr) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in get_entry_payload\n");
+        exit(EXIT_FAILURE);
+    }
+    return entr->payload;
+}
+
 bool get_entry_matched(entry* entr) {
     if (entr == NULL) {
         fprintf(stderr, "Fail in set_entry_matched\n");
@@ -239,18 +243,10 @@ bool get_entry_matched(entry* entr) {
     return entr->matched;    
 }
 
-void set_entry_matchdist(entry* entr, int dist) {
+int get_entry_dist(entry* entr) {
     if (entr == NULL) {
         fprintf(stderr, "Fail in set_entry_matchdist\n");
         exit(EXIT_FAILURE);
     }
-    entr->matching_dist = dist;
-}
-
-int get_entry_matchdist(entry* entr) {
-    if (entr == NULL) {
-        fprintf(stderr, "Fail in set_entry_matchdist\n");
-        exit(EXIT_FAILURE);
-    }
-    return entr->matching_dist;
+    return entr->dist;
 }

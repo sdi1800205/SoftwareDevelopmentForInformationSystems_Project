@@ -58,4 +58,4 @@ clean:
 	find . -name '*.o' -print | xargs rm -f $(OBJS)
 
 valgrind: new-testdriver
-	valgrind --leak-check=full ./testdriver
+	valgrind --leak-check=full --show-leak-kinds=all ./testdriver

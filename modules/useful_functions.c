@@ -17,5 +17,5 @@ int compare_ints(Pointer a, Pointer b) {
 }
 
 int compare_strings(Pointer a, Pointer b) {
-	return exact_distance((char*)a, strlen((char*)a), (char*)b, strlen((char*)b));
+	return exact_distance((char*)a, (char*)b);
 }

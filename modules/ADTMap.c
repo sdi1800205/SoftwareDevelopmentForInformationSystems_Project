@@ -70,7 +70,7 @@ Map map_create(CompareFunc compare, DestroyFunc destroy_key, DestroyFunc destroy
 	// Δεσμεύουμε κατάλληλα τον χώρο που χρειαζόμαστε για το hash table
 	Map map = malloc(sizeof(*map));
 	map->capacity = prime_sizes[0];
-	map->array = malloc(map->capacity * sizeof(struct map_node));
+	map->array = calloc(map->capacity, sizeof(struct map_node));
 	map->size = 0;
 	map->compare = compare;
 	map->destroy_key = destroy_key;
@@ -89,6 +89,7 @@ static void rehash(Map map) {
 	// Αποθήκευση των παλιών δεδομένων
 	int old_capacity = map->capacity;
 	MapNode old_array = map->array;
+	map->array = NULL;
 
 	// Βρίσκουμε τη νέα χωρητικότητα, διασχίζοντας τη λίστα των πρώτων ώστε να βρούμε τον επόμενο. 
 	int prime_no = sizeof(prime_sizes) / sizeof(int);	// το μέγεθος του πίνακα
@@ -103,12 +104,12 @@ static void rehash(Map map) {
 		map->capacity *= 2;								// LCOV_EXCL_LINE
 
 	// Δημιουργούμε ένα μεγαλύτερο hash table
-	map->array = malloc(map->capacity * sizeof(struct map_node));
+	map->array = calloc(map->capacity, sizeof(struct map_node));
 
 	// Τοποθετούμε ΜΟΝΟ τα entries που όντως περιέχουν ένα στοιχείο (το rehash είναι και μία ευκαιρία να ξεφορτωθούμε τα deleted nodes)
 	map->size = 0;
 	for (int i = 0; i < old_capacity; i++) {
-	 	if (old_array[i].set != NULL) {
+	 	if (old_array[i].set != NULL && set_size(old_array[i].set) > 0) {
 			for (SetNode node = set_first(old_array[i].set); node != SET_EOF; node = set_next(old_array[i].set, node)) {
 				Pair pair = set_node_value(old_array[i].set, node);
 				map_insert(map, pair->key, pair->value);

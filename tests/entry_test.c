@@ -117,7 +117,7 @@ void test_entry_list() {
 void test_entry_index() {
     entry_list* EntryList = read_words();
     Index* indx;
-    ErrorCode err = build_entry_index(EntryList, MT_EXACT_MATCH, &indx, NULL);      // the old hamming match is the new exact match
+    ErrorCode err = build_entry_index(EntryList, MT_EDIT_DIST, &indx, NULL);      // the old hamming match is the new exact match
     TEST_ASSERT(err == EC_SUCCESS);
     // printf("\n");
     // BK_tree_print(indx);
@@ -129,7 +129,7 @@ void test_entry_index() {
 void test_lookup_entry_index() {
     entry_list* EntryList = read_words();
     Index* indx;
-    ErrorCode err = build_entry_index(EntryList, MT_EXACT_MATCH, &indx, NULL);      // the old hamming match is the new exact match
+    ErrorCode err = build_entry_index(EntryList, MT_EDIT_DIST, &indx, NULL);      // the old hamming match is the new exact match
     TEST_ASSERT(err == EC_SUCCESS);
 
     entry_list* result;

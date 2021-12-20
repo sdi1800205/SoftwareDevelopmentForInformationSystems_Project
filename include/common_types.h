@@ -16,3 +16,5 @@ typedef int (*CompareFunc)(Pointer a, Pointer b);
 
 // Pointer to function that destroys an object
 typedef ErrorCode (*DestroyFunc)(Pointer value);
+
+#define MAX_INT 0x7FFFFFFF
