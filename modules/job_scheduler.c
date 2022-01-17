@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include "job.h"
 #include "threads.h"
-#include "queue.h"
-
+#include "Queue.h"
 
 JobScheduler* initialize_scheduler(int execution_threads){
 	JobScheduler *sch = (JobScheduler *)malloc(sizeof(JobScheduler));
@@ -17,6 +16,8 @@ JobScheduler* initialize_scheduler(int execution_threads){
 	sch->q = queue_create();
 	sch->execution_threads = execution_threads;
 
+	
+
 	return sch;
 }
 
@@ -27,8 +28,22 @@ int submit_job(JobScheduler* sch, Job* j){
 }
 
 int execute_all_jobs(JobScheduler* sch){
-	// semaphore up
-	Job *j = queue_pop(sch);
-	
+	can_exec = 1;			//indicate that it's safe to continue after pthread_cond_wait(&(sch->cond_start_exec),&(sch->mtx_start_exec))
+    pthread_cond_broadcast(&(sch->cond_start_exec),&(sch->mtx_start_exec));
+}
+
+int wait_all_tasks_finish(JobScheduler* sch){
+	for(int i=0; i<sch->execution_threads; i++){
+		pthread_cond_wait(&(sch->cond_end_exec),&(sch->mtx_end_exec));
+	}
+	can_exec = 0;		//reset variable
+}
+
+int destroy_scheduler(JobScheduler* sch){
+	stop_threads = 1;
+
+	pthread_cond_broadcast(&(sch->cond_start_exec),&(sch->mtx_start_exec));
+	for(int i=0;)
+	queue_destroy(sch->q);
 
 }
