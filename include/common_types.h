@@ -5,6 +5,8 @@
 // Χρήση του τύπου "bool" για μεταβλητές που παίρνουν μόνο τιμές true / false
 #include <stdbool.h> 
 
+#define MAX_INT 0x7FFFFFFF
+
 // pointer to an object of any type
 typedef void* Pointer;
 
@@ -17,4 +19,5 @@ typedef int (*CompareFunc)(Pointer a, Pointer b);
 // Pointer to function that destroys an object
 typedef ErrorCode (*DestroyFunc)(Pointer value);
 
-#define MAX_INT 0x7FFFFFFF
+// pointer to function of core.h with the arguments composed to a specific struct 
+typedef Pointer (*RoutineFunc)(Pointer arguments);
