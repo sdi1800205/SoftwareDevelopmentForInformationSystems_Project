@@ -23,3 +23,7 @@ Pointer queue_pop(Queue queue) {
 
     return last_node;
 }
+
+void queue_destroy(Queue queue) {
+    deque_destroy(queue);
+}

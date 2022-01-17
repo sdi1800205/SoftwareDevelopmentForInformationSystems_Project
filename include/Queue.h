@@ -10,3 +10,4 @@ Queue queue_create();
 int queue_size(Queue queue);
 void queue_push(Queue queue, Pointer value);
 Pointer queue_pop(Queue queue);
+void queue_destroy(Queue queue);
