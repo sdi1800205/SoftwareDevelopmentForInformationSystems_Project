@@ -1,3 +1,6 @@
+#ifndef JOB_SCH
+#define JOB_SCH
+
 #include "common_types.h"
 #include "core.h"
 
@@ -11,3 +14,5 @@ typedef struct JobScheduler{
 JobScheduler* initialize_scheduler(int execution_threads);
 int submit_job(JobScheduler* sch, Job* j);
 int execute_all_jobs(JobScheduler* sch);
+
+#endif
