@@ -19,6 +19,9 @@ void queue_push(Queue queue, Pointer value) {
 }
 
 Pointer queue_pop(Queue queue) {
+    if (queue_size(queue) == 0)
+        return NULL;
+        
     Pointer last_node = deque_get_at(queue, deque_size(queue)-1);
 
     deque_remove_last(queue);

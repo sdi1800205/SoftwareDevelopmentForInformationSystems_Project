@@ -11,7 +11,8 @@
 #include "entry_list.h"
 #include "BK_tree.h"
 #include "hamming.h"
-
+#include "job_scheduler.h"
+#include "job.h"
 
 // Keeps all information related to an active query
 typedef struct Query
@@ -69,6 +70,10 @@ Set docs;
 Map exact_dist;				// struct for exact distance
 Index* edit_dist;			// struct for edit distance
 hamIndex* ham_dist;			// struct for hamming distance
+
+
+/////////// Job Scheduler /////////////////////
+JobScheduler* JobSch; 		// Job Scheduler for multithreading
 
 //////////// core.h functions ///////////////
 
