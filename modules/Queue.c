@@ -6,6 +6,8 @@
 
 Queue queue_create() {
     Queue queue = deque_create(0, NULL);
+
+    return queue;
 }
 
 int queue_size(Queue queue) {

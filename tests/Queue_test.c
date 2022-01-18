@@ -23,6 +23,11 @@ void test_push(void) {
 		TEST_ASSERT(queue_size(queue) == i+1);		// Το size ενημερώθηκε;
 	}
 
+    for (int i = 999; i >= 0; i--) {
+        TEST_ASSERT(queue_size(queue) == i+1);
+        queue_pop(queue);
+    }
+
     queue_destroy(queue);
 }
 
@@ -39,9 +44,8 @@ void test_pop(void) {
 	}
 
     for (int i = 999; i >= 0; i--) {
-        TEST_ASSERT(queue_size(queue) == i);
-        int * t = queue_pop(queue);
-        TEST_ASSERT(t == &array[i]);
+        TEST_ASSERT(queue_size(queue) == i+1);
+        queue_pop(queue);
     }
 
     queue_destroy(queue);
@@ -50,14 +54,12 @@ void test_pop(void) {
 void test_destroy(void) {
     Queue queue = queue_create();
 
-    queue_push(queue, malloc(1));
-
-    for (int i=1; i<1000; i++)
+    for (int i=0; i<1000; i++)
         queue_push(queue, malloc(1));
 
     TEST_ASSERT(queue_size(queue) == 1000);
 
-    for (int i=1; i<1000; i++)   
+    for (int i=0; i<1000; i++)   
         queue_pop(queue);
 
     TEST_ASSERT(queue_size(queue) == 0);
