@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "job_scheduler.h"
+#include "threads.h"
 
 int stop_threads = 0,can_exec = 0;
 
