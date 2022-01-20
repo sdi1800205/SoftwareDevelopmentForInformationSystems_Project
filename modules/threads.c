@@ -42,6 +42,7 @@ void* start_routine(void* arg){
 
 		}
 
+		pthread_barrier_wait (&(JobSch->barrier));
 		pthread_cond_signal(&(JobSch->cond_end_exec));
 	}
 
