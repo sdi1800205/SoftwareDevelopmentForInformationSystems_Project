@@ -21,6 +21,7 @@ pthread_t* create_pthread_t(pthread_t value) {
 // deallocates pthread_t*
 ErrorCode destroy_pthread_t(Pointer value) {
 	free(value);
+	return EC_SUCCESS;
 }
 
 

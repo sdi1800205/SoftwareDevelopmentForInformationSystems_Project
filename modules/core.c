@@ -15,7 +15,7 @@
 #include "job.h"
 
 
-#define THREADS_NUM 1
+#define THREADS_NUM 2
 
 
 // declaration of multi-thread functions
@@ -71,11 +71,12 @@ Set queries;
 
 // Keeps all currently available results that has not been returned yet
 Deque docs;
-
+pthread_mutex_t mtx_docs;
 
 //////////// structs for matchtypes ////////////
 // we create structs depend on the match_type and the match_distance
 Map exact_dist;				// struct for exact distance
+
 Index* edit_dist;			// struct for edit distance
 hamIndex* ham_dist;			// struct for hamming distance
 
@@ -101,9 +102,11 @@ ErrorCode InitializeIndex() {
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
 
-
 	// create JobScheduler
 	JobSch = initialize_scheduler(THREADS_NUM);
+
+	// initialize mutexes for docs and exact_dist
+	pthread_mutex_init(&mtx_docs,0);
 
 	return EC_SUCCESS;
 }
@@ -118,6 +121,8 @@ ErrorCode DestroyIndex() {
 
 	if (destroy_scheduler(JobSch) < 0)
 		return EC_FAIL;
+
+	pthread_mutex_destroy(&mtx_docs);
 
 	return EC_SUCCESS;
 }
@@ -360,7 +365,14 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 	destroy_entry_list(result_list);
 
 	// add doc in the set of docs
+	pthread_mutex_lock(&mtx_docs);
+	printf("Thread :%lu doc:%d num_of_queries:%d\n",pthread_self(),doc->doc_id,doc->num_res);
+	for(int i=0; i<doc->num_res; i++){
+		printf("Thread :%lu i:%d query:%d\n",pthread_self(),i,doc->query_ids[i]);
+	}
+
 	deque_insert_last(docs, doc);
+	pthread_mutex_unlock(&mtx_docs);
 
 	return EC_SUCCESS;
 }
