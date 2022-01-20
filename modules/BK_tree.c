@@ -6,6 +6,7 @@
 #include "BK_List.h"
 #include "distances.h"
 #include "ADTSet.h"
+#include "ADTMap.h"
 #include "useful_functions.h"
 
 //////////// structs of module ////////////////
@@ -101,18 +102,18 @@ static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) 
 }
 
 // this function checks recursively which nodes/words are valid for the requested word
-static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type) {
+static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type, pthread_t target_thread) {
 	int dist = find_distance_word(w, get_entry_word(tree_node->centry), type);		// find distance between requested word and current node
 	if (dist <= threshold) {
 		// check if the entry haw already get into results
-		if (get_entry_matched(tree_node->centry)) {				// case of this entry already been in results
-			if (dist < get_entry_dist(tree_node->centry))		// we keep the minimum distance of this entry in the document
-				set_entry_dist(tree_node->centry, dist);		// we keep the distance that made this entry matched
+		if (get_entry_pthread_t(tree_node->centry, target_thread) != NULL) {		// case of this entry already been in results of current thread
+			if (dist < get_entry_dist(tree_node->centry, target_thread))		// we keep the minimum distance of this entry of this thread in the document
+				set_entry_dist(tree_node->centry, target_thread, dist);		// we keep the distance that made this entry matched
 		}
 		else {		
-			set_entry_dist(tree_node->centry, dist);		// we keep the distance that made this entry matched										// case of this entry first results-appearance
-			set_entry_matched(tree_node->centry, true);		// we set true the value of entry that shows it has been matched with the document
-			add_entry(result, tree_node->centry);			// we add the entry of the node to the result list
+			entry_add_thread(tree_node->centry, target_thread);		// we set true the value of entry that shows it has been matched with the document
+			set_entry_dist(tree_node->centry, target_thread, dist);				// we keep the distance that made this entry matched										// case of this entry first results-appearance
+			add_entry(result, tree_node->centry);					// we add the entry of the node to the result list
 		}
 	}
 
@@ -121,7 +122,7 @@ static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, 
 	// checking all the children until the distance is higher than d+n
 	while (listnode != BK_LIST_EOF && listnode->node->dist <= dist + threshold) {
 		if (listnode->node->dist >= dist - threshold) {		// we also keep the nodes that their distance is lower than d-n
-			result = lookup_tree(w, listnode->node, threshold, result, type);	// we call the function for the valid node
+			result = lookup_tree(w, listnode->node, threshold, result, type, target_thread);	// we call the function for the valid node
 		}
 		listnode = BK_list_next(listnode);	// go to the next child
 	}
@@ -198,13 +199,13 @@ entry* insert_entry_index(Index* indx, entry* entr) {
 		return BK_insert_entry(entr, indx->root, indx->match_type);
 }
 
-ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result) {
+ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result, pthread_t target_thread) {
 	if (ix == NULL || threshold < 0 || *result == NULL)
 		return EC_FAIL;
 	else if (ix->root == NULL)	// case of tree being empty
 		return EC_SUCCESS;		// this is no mistake, its a possible outcome so continue
 	else
-		*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type);		// we call a recursive function for this job
+		*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type, target_thread);		// we call a recursive function for this job
 	
 	return EC_SUCCESS;
 }

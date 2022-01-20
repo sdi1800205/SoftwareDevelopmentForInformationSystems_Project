@@ -70,7 +70,7 @@ ErrorCode destroy_document(Pointer value) {
 Set queries;
 
 // Keeps all currently available results that has not been returned yet
-Set docs;
+Deque docs;
 
 
 //////////// structs for matchtypes ////////////
@@ -88,7 +88,7 @@ JobScheduler* JobSch; 		// Job Scheduler for multithreading
 ErrorCode InitializeIndex() {
 	// initialize structs for queries and documents
 	queries = set_create(compare_queries, destroy_query);
-	docs = set_create(compare_documents, destroy_document);
+	docs = deque_create(0, destroy_document);
 
 	// create dictionary for exact distance
 	// we use the entry->word as a key and entry as a value in the dictionary, so to delete the it only takes to delete entry
@@ -114,7 +114,7 @@ ErrorCode DestroyIndex() {
 	destroy_hamming_index(ham_dist);
 
 	set_destroy(queries);
-	set_destroy(docs);
+	deque_destroy(docs);
 
 	if (destroy_scheduler(JobSch) < 0)
 		return EC_FAIL;
@@ -214,7 +214,7 @@ ErrorCode EndQuery(QueryID query_id) {
 
 ErrorCode MatchDocument(DocID doc_id, const char * doc_str) {
 	// allocate memory for documents string
-	char* text = calloc(MAX_DOC_LENGTH, sizeof(char));
+	char* text = malloc(MAX_DOC_LENGTH * sizeof(char));
 	strcpy(text, (char*)doc_str);
 
 	// create a job and push it to the scheduler
@@ -236,15 +236,14 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 
 	// Get the first undeliverd result from "docs" and return it
 	
-	if(set_size(docs) == 0) return EC_NO_AVAIL_RES;
+	if(deque_size(docs) == 0) return EC_NO_AVAIL_RES;
 	
-	Document* doc = set_get_at(docs, 0);		// get first document
+	Document* doc = deque_get_at(docs, 0);		// get first document
 	*p_doc_id = doc->doc_id;
 	*p_num_res = doc->num_res;
 	*p_query_ids = doc->query_ids;
 
-	if (!(set_remove(docs, doc)))
-		return EC_FAIL;
+	deque_remove_first(docs);
 
 	return EC_SUCCESS;
 }
@@ -257,7 +256,8 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
     // get the arguments to proceed
     int doc_id = ((DocArgs*)arguments)->id;
     char* doc_str = ((DocArgs*)arguments)->str;
-	printf("Document id: %d\n", doc_id);
+
+	pthread_t thread_id = pthread_self();			// get threads id
 
     // initialize result list
 	entry_list* result_list;
@@ -291,19 +291,19 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 		// lookup the hash table
 		entry* res_entry = map_find(exact_dist, token);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
 		if (res_entry != NULL) {
-			set_entry_dist(res_entry, 0);							// set dist = 0 because it is from exact
-			set_entry_matched(res_entry, true);						// show it matched
+			entry_add_thread(res_entry, thread_id);					// add thread id to entry's matched threads
+			set_entry_dist(res_entry, thread_id, 0);							// set dist of this thread = 0 because it is from exact
 			add_entry(result_list, res_entry);						// append it in the result list
 		}
 
 		// lookup trees with the higher match_dist value so it considers every match_dist from 1 to 3
 
 		// lookup the BK_tree of edit distance
-		if ((lookup_entry_index(token, edit_dist, 3, &result_list)) != EC_SUCCESS)
+		if ((lookup_entry_index(token, edit_dist, 3, &result_list, thread_id)) != EC_SUCCESS)
 			return EC_FAIL;
 
 		// lookup the Hamming BK_tree of hamming distance
-		if ((lookup_hamming_index(token, ham_dist, 3, &result_list)) != EC_SUCCESS)
+		if ((lookup_hamming_index(token, ham_dist, 3, &result_list, thread_id)) != EC_SUCCESS)
 			return EC_FAIL;
 		
 		token = strtok(NULL, " ");
@@ -320,7 +320,8 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 		// check every entry
 		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
 			entry* entr = entry_list_node_value(lnode);
-			if (!(get_entry_matched(entr) && (get_entry_dist(entr) <= query->match_dist))) {		// check if the entry for this query is valid
+			// pthread_t* thread_found  = get_entry_pthread_t(entr, thread_id);
+			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))) {		// check if the entry for this query is valid
 				matched = false;
 				break;
 			}
@@ -352,15 +353,14 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 	// initialize all the entries' matched values for the next document
 	for (entry_list_node* lnode = get_first(result_list); lnode != LIST_EOF; lnode = get_next(result_list, lnode)) {
 		entry* value = entry_list_node_value(lnode);
-		set_entry_dist(value, MAX_INT);
-		set_entry_matched(value, false);					// set matched value back to false, for the next document's word
+		entry_remove_thread(value, thread_id);				// remove thread id from entry's matched threads
 	}
 
 	// destroy result list
 	destroy_entry_list(result_list);
 
 	// add doc in the set of docs
-	set_insert(docs, doc);
+	deque_insert_last(docs, doc);
 
 	return EC_SUCCESS;
 }

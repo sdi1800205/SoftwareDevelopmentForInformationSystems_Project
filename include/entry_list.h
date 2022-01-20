@@ -28,14 +28,16 @@ ErrorCode destroy_entry_list(entry_list* el);
 
 // Extra functions
 entry* entry_list_node_value(const entry_list_node*);
+void entry_add_thread(entry*, pthread_t);
+void entry_remove_thread(entry*, pthread_t);
 
 // set
-void set_entry_matched(entry*, bool);
-void set_entry_dist(entry*, int);
+void set_entry_dist(entry*, pthread_t, int);
 
 // get
 word get_entry_word(entry* e);
-bool get_entry_matched(entry*);
-int get_entry_dist(entry*);
+int get_entry_dist(entry*, pthread_t);
+pthread_t* get_entry_pthread_t(entry*, pthread_t);
+
 
 #endif //__ENTRY_H_

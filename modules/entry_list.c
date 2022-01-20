@@ -5,16 +5,23 @@
 #include "useful_functions.h"
 #include "entry_list.h"
 #include "core.h"
+#include "ADTMap.h"
 
 // #define _DEBUG_ 1
+
+
+// hash function for pthread_t
+uint hash_pthread_t(Pointer value) {
+    return *(pthread_t*)value%MAX_INT;
+}
+
 
 struct entry
 {
     word word;
-    Pointer payload;        // with this implementation payload isn't used
 
-    int dist;               // variable that shows the distance between a word and this word
-    bool matched;           // variable that shows if this entry has made a match with a word
+    Map dist;                       // map that holds for a matched thread the distance between a word and this word
+    Set matched_threads;            // a set that keeps the thread ids that have made a match with this word
 };
 
 struct entry_list
@@ -54,9 +61,9 @@ ErrorCode create_entry(const word w, entry** e) {
 
     // initialize values
     strcpy(newEntry->word, w);
-    newEntry->dist = MAX_INT;
-    newEntry->matched = false;
-    newEntry->payload = NULL;
+    newEntry->dist = map_create(compare_pthread_t, destroy_pthread_t, (DestroyFunc)free);
+    map_set_hash_function(newEntry->dist, hash_pthread_t);
+    newEntry->matched_threads = set_create(compare_pthread_t, destroy_pthread_t);
 
     // assign the created entry to the pointer so as to be return (pass by reference)
     *e = newEntry;
@@ -72,6 +79,8 @@ ErrorCode destroy_entry(entry *e) {
 
     // deallocate memory
     free(e->word);
+    set_destroy(e->matched_threads);
+    map_destroy(e->dist);
     free(e);
 
     return EC_SUCCESS;
@@ -186,30 +195,39 @@ ErrorCode destroy_entry_list(entry_list* el) {
     return EC_SUCCESS;
 }
 
-// Extra functions
+//////////////////// Extra functions
 entry* entry_list_node_value(const entry_list_node* node) {
     return node->value;
 }
 
-// set
-
-void set_entry_matched(entry* entr, bool matched) {
+void entry_add_thread(entry* entr, pthread_t id) {
     if (entr == NULL) {
-        fprintf(stderr, "Fail in set_entry_matched\n");
+        fprintf(stderr, "Fail in entry_add_thread\n");
         exit(EXIT_FAILURE);
     }
-    entr->matched = matched;
+    set_insert(entr->matched_threads, create_pthread_t(id));
 }
 
-void set_entry_dist(entry* entr, int dist) {
+void entry_remove_thread(entry* entr, pthread_t id) {
+    if (entr == NULL) {
+        fprintf(stderr, "Fail in entry_remove_thread\n");
+        exit(EXIT_FAILURE);
+    }
+    set_remove(entr->matched_threads, &id);
+}
+
+
+///////////////// set
+
+void set_entry_dist(entry* entr, pthread_t target_thread, int dist) {
     if (entr == NULL) {
         fprintf(stderr, "Fail in set_entry_matchdist\n");
         exit(EXIT_FAILURE);
     }
-    entr->dist = dist;    
+    map_insert(entr->dist, create_pthread_t(target_thread), create_int(dist));
 }
 
-// get
+////////////////// get
 
 word get_entry_word(entry* e) {
     if (e == NULL)
@@ -218,18 +236,21 @@ word get_entry_word(entry* e) {
     return e->word;
 }
 
-bool get_entry_matched(entry* entr) {
-    if (entr == NULL) {
-        fprintf(stderr, "Fail in set_entry_matched\n");
-        exit(EXIT_FAILURE);
-    }
-    return entr->matched;    
-}
-
-int get_entry_dist(entry* entr) {
+int get_entry_dist(entry* entr, pthread_t target_thread) {
     if (entr == NULL) {
         fprintf(stderr, "Fail in set_entry_matchdist\n");
         exit(EXIT_FAILURE);
     }
-    return entr->dist;
+
+    int* dist = map_find(entr->dist, &target_thread);
+    if (dist == NULL) {
+        fprintf(stderr, "Fail in get_entry_dist\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return *dist;
+}
+
+pthread_t* get_entry_pthread_t(entry* entr, pthread_t id) {
+    return (pthread_t*)set_find(entr->matched_threads, &id);
 }

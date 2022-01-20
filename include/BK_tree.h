@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pthread.h>
+
 #include "core.h"
 #include "entry_list.h"
 #include "common_types.h"
@@ -9,7 +11,7 @@ typedef struct BK_node BK_node;
 
 
 ErrorCode build_entry_index(const entry_list* , MatchType , Index** , DestroyFunc);     // creates a bk tree from an entry_list
-ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result);
+ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list** result, pthread_t target_thread);
 ErrorCode destroy_entry_index(Index* );
 
 // new

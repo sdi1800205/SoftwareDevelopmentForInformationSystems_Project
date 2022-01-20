@@ -55,7 +55,7 @@ entry* insert_hamming_index(hamIndex* h, entry *e) {
     return insert_entry_index(h->BK_trees[word_length - 4], e);
 }
 
-ErrorCode lookup_hamming_index(const word w, hamIndex* hamindx, int threshold, entry_list** result) {
+ErrorCode lookup_hamming_index(const word w, hamIndex* hamindx, int threshold, entry_list** result, pthread_t target_thread) {
     if (hamindx == NULL || threshold < 0 || *result == NULL)
     	return EC_FAIL;
     
@@ -64,5 +64,5 @@ ErrorCode lookup_hamming_index(const word w, hamIndex* hamindx, int threshold, e
 	
     if (hamindx->BK_trees[strlen(w) - 4] == NULL)       // maybe the tree for the wanted word's lenght doesn't exists
         return EC_SUCCESS;
-    return lookup_entry_index(w, hamindx->BK_trees[strlen(w) - 4], threshold, result);
+    return lookup_entry_index(w, hamindx->BK_trees[strlen(w) - 4], threshold, result, target_thread);
 }
