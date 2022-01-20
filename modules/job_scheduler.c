@@ -35,7 +35,8 @@ int submit_job(JobScheduler* sch, Job* j){
 	pthread_mutex_lock(&(sch->mtx_read));
 	queue_push(sch->queue, j);
 	pthread_mutex_unlock(&(sch->mtx_read));
-	return 1;
+	
+	return 0;
 }
 
 int execute_all_jobs(JobScheduler* sch){

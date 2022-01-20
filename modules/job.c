@@ -11,7 +11,7 @@ Job* job_create(RoutineFunc routine, Pointer arguments) {
 }
 
 void job_destroy(Job* job) {
-    args_destroy(job->arguments);
+    docargs_destroy(job->arguments);
     free(job);
 }
 
@@ -24,6 +24,7 @@ DocArgs* docargs_create(DocID id, char* str) {
     return args;
 }
 
-void args_destroy(Pointer args) {
+void docargs_destroy(DocArgs* args) {
+    free(args->str);
     free(args);
 }

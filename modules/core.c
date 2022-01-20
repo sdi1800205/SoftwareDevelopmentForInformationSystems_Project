@@ -213,7 +213,12 @@ ErrorCode EndQuery(QueryID query_id) {
 }
 
 ErrorCode MatchDocument(DocID doc_id, const char * doc_str) {
-	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, (char*)doc_str));
+	// allocate memory for documents string
+	char* text = calloc(MAX_DOC_LENGTH, sizeof(char));
+	strcpy(text, (char*)doc_str);
+
+	// create a job and push it to the scheduler
+	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, text));
 	submit_job(JobSch, job);
 
 	return EC_SUCCESS;
@@ -252,6 +257,7 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
     // get the arguments to proceed
     int doc_id = ((DocArgs*)arguments)->id;
     char* doc_str = ((DocArgs*)arguments)->str;
+	printf("Document id: %d\n", doc_id);
 
     // initialize result list
 	entry_list* result_list;

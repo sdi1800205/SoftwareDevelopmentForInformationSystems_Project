@@ -31,4 +31,4 @@ void job_destroy(Job* job);
 
 // argument structs' functions
 DocArgs* docargs_create(DocID id, char* str);
-void args_destroy(Pointer args);
+void docargs_destroy(DocArgs* args);
