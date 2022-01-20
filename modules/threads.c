@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#include "threads.h"
 #include "job_scheduler.h"
 #include "job.h"
 #include "Queue.h"
@@ -10,13 +11,13 @@ extern int stop_threads, can_exec;
 
 Job* take_job() {
 	pthread_mutex_lock(&(JobSch->mtx_read));
-	Job *job = queue_pop(JobSch->q);
+	Job *job = queue_pop(JobSch->queue);
 	pthread_mutex_unlock(&(JobSch->mtx_read));
 
 	return job;
 }
 
-void start_routine(void){
+void* start_routine(void* arg){
 
 	while(!stop_threads){
 
@@ -24,7 +25,7 @@ void start_routine(void){
 		while(!can_exec) {
 			pthread_cond_wait(&(JobSch->cond_start_exec) , &(JobSch->mtx_start_exec) );
 		}
-		pthread_mutex_unlock(&(JobSch->mtx_start_exec))
+		pthread_mutex_unlock(&(JobSch->mtx_start_exec));
 
 		if(stop_threads)
 			break;
@@ -32,8 +33,10 @@ void start_routine(void){
 		while(1) {
 
 			Job* job = take_job();
-			if(job != NULL)
+			if(job != NULL) {
 				(job->routine)(job->arguments);
+				job_destroy(job);
+			}
 			else
 				break;
 
@@ -41,4 +44,6 @@ void start_routine(void){
 
 		pthread_cond_signal(&(JobSch->cond_end_exec));
 	}
+
+	return NULL;
 }

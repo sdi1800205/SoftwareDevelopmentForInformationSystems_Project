@@ -238,6 +238,9 @@ ErrorCode GetNextAvailRes(DocID*         p_doc_id,
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //*********************************************************************************************
 
+typedef struct Query Query;
+typedef struct Document Document;
+
 #ifdef __cplusplus
 }
 #endif

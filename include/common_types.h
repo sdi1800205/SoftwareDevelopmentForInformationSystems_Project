@@ -20,4 +20,4 @@ typedef int (*CompareFunc)(Pointer a, Pointer b);
 typedef ErrorCode (*DestroyFunc)(Pointer value);
 
 // pointer to function of core.h with the arguments composed to a specific struct 
-typedef Pointer (*RoutineFunc)(Pointer arguments);
+typedef ErrorCode (*RoutineFunc)(Pointer arguments);

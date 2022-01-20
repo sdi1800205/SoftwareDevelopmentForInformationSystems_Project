@@ -14,6 +14,14 @@
 #include "job_scheduler.h"
 #include "job.h"
 
+
+#define THREADS_NUM 1
+
+
+// declaration of multi-thread functions
+ErrorCode MatchDocument_mt(Pointer);
+
+
 // Keeps all information related to an active query
 typedef struct Query
 {
@@ -93,6 +101,10 @@ ErrorCode InitializeIndex() {
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
 
+
+	// create JobScheduler
+	JobSch = initialize_scheduler(THREADS_NUM);
+
 	return EC_SUCCESS;
 }
 
@@ -103,6 +115,9 @@ ErrorCode DestroyIndex() {
 
 	set_destroy(queries);
 	set_destroy(docs);
+
+	if (destroy_scheduler(JobSch) < 0)
+		return EC_FAIL;
 
 	return EC_SUCCESS;
 }
@@ -197,8 +212,48 @@ ErrorCode EndQuery(QueryID query_id) {
 	return EC_SUCCESS;
 }
 
-ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
-	// initialize result list
+ErrorCode MatchDocument(DocID doc_id, const char * doc_str) {
+	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, (char*)doc_str));
+	submit_job(JobSch, job);
+
+	return EC_SUCCESS;
+}
+
+ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID ** p_query_ids) {
+	// check if there are jobs to execute, and if they do execute them
+	if (jobscheduler_size(JobSch) > 0) {
+		if (execute_all_jobs(JobSch) < 0)
+			return EC_FAIL;
+		if (wait_all_tasks_finish(JobSch) < 0)
+			return EC_FAIL;
+	}
+
+
+	// Get the first undeliverd result from "docs" and return it
+	
+	if(set_size(docs) == 0) return EC_NO_AVAIL_RES;
+	
+	Document* doc = set_get_at(docs, 0);		// get first document
+	*p_doc_id = doc->doc_id;
+	*p_num_res = doc->num_res;
+	*p_query_ids = doc->query_ids;
+
+	if (!(set_remove(docs, doc)))
+		return EC_FAIL;
+
+	return EC_SUCCESS;
+}
+
+
+
+///////////////////////////////// multi-threading ////////////////////////////////////
+
+ErrorCode MatchDocument_mt(Pointer arguments) {
+    // get the arguments to proceed
+    int doc_id = ((DocArgs*)arguments)->id;
+    char* doc_str = ((DocArgs*)arguments)->str;
+
+    // initialize result list
 	entry_list* result_list;
 	create_entry_list(&result_list, NULL);			// we dont want result list to destroy entries, structs do that
 
@@ -300,22 +355,6 @@ ErrorCode MatchDocument (DocID doc_id, const char * doc_str) {
 
 	// add doc in the set of docs
 	set_insert(docs, doc);
-
-	return EC_SUCCESS;
-}
-
-ErrorCode GetNextAvailRes (DocID * p_doc_id, unsigned int * p_num_res, QueryID ** p_query_ids) {
-	// Get the first undeliverd result from "docs" and return it
-	
-	if(set_size(docs) == 0) return EC_NO_AVAIL_RES;
-	
-	Document* doc = set_get_at(docs, 0);		// get first document
-	*p_doc_id = doc->doc_id;
-	*p_num_res = doc->num_res;
-	*p_query_ids = doc->query_ids;
-
-	if (!(set_remove(docs, doc)))
-		return EC_FAIL;
 
 	return EC_SUCCESS;
 }

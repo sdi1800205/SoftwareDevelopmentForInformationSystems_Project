@@ -1,17 +1,20 @@
 #ifndef JOB_SCH
 #define JOB_SCH
 
+#include <pthread.h>
+
 #include "common_types.h"
 #include "core.h"
 #include "Queue.h"
-#include <p_thread.h>
-
+#include "job.h"
 
 typedef struct JobScheduler{
 	int execution_threads; 		// number of execution threads
-	Queue q; 					// a queue that holds submitted jobs / tasks
-	p_thread_t* tids; 			// execution threads
-								// mutex, condition variable, ...
+	Queue queue; 					// a queue that holds submitted jobs / tasks
+	pthread_t* tids; 			// execution threads
+
+
+	// mutex, condition variable, ...
 	pthread_cond_t cond_start_exec;
 	pthread_cond_t cond_end_exec;
 
@@ -28,5 +31,8 @@ int submit_job(JobScheduler* sch, Job* j);
 int execute_all_jobs(JobScheduler* sch);
 int wait_all_tasks_finish(JobScheduler* sch);
 int destroy_scheduler(JobScheduler* sch);
+
+// extra functions
+int jobscheduler_size(JobScheduler* sch);
 
 #endif

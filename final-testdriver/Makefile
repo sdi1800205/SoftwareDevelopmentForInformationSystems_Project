@@ -34,6 +34,7 @@ TEST_NEW_O=test_driver/test_through.o
 IMPL_O=$(MODULES)/core.o
 
 OBJS = $(MODULES)/ADTDeque.o $(MODULES)/ADTSet.o $(MODULES)/ADTMap.o $(MODULES)/BK_tree.o $(MODULES)/BK_List.o $(MODULES)/distances.o $(MODULES)/entry_list.o $(MODULES)/hamming.o $(MODULES)/useful_functions.o
+OBJS_2 = $(MODULES)/job_scheduler.o $(MODULES)/job.o $(MODULES)/Queue.o $(MODULES)/threads.o
 
 CC  = gcc
 CXX = g++
@@ -50,12 +51,12 @@ all: $(PROGRAMS)
 lib: $(IMPL_O)
 	$(CC) $(CXXFLAGS) -shared -o lib$(LIBRARY).so $(IMPL_O)
 	
-new-testdriver: lib $(TEST_NEW_O) $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o testdriver $(TEST_NEW_O) ./lib$(LIBRARY).so
+new-testdriver: lib $(TEST_NEW_O) $(OBJS) $(OBJS_2)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(OBJS_2) -o testdriver $(TEST_NEW_O) ./lib$(LIBRARY).so $(LDFLAGS)
 
 clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt
-	find . -name '*.o' -print | xargs rm -f $(OBJS)
+	find . -name '*.o' -print | xargs rm -f $(OBJS) $(OBJS_2) $(IMPL_O)
 
 run: new-testdriver
 	./testdriver
