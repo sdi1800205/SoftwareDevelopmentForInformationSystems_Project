@@ -25,6 +25,8 @@ typedef struct JobScheduler{
 
 	pthread_mutex_t mtx_read;
 
+	pthread_mutex_t mtx_threads_passed;
+
 	pthread_barrier_t barrier;
 }JobScheduler;
 

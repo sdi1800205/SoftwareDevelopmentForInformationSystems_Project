@@ -16,7 +16,7 @@
 #include "threads.h"
 
 
-#define THREADS_NUM 3
+#define THREADS_NUM 4
 
 
 // declaration of multi-thread functions
@@ -72,9 +72,9 @@ Set queries;
 // Keeps all currently available results that has not been returned yet
 Deque docs;
 pthread_mutex_t mtx_docs;
-pthread_mutex_t entry_remove_mtch_thread;
-pthread_mutex_t mtx_exact;
-pthread_mutex_t mtx_entry;
+// pthread_mutex_t entry_remove_mtch_thread;
+// pthread_mutex_t mtx_exact;
+// pthread_mutex_t mtx_entry;
 
 pthread_mutex_t pousths;
 //////////// structs for matchtypes ////////////
@@ -108,9 +108,9 @@ ErrorCode InitializeIndex() {
 
 	// initialize mutexes for docs and exact_dist
 	pthread_mutex_init(&mtx_docs,0);
-	pthread_mutex_init(&entry_remove_mtch_thread,0);
-	pthread_mutex_init(&mtx_exact,0);
-	pthread_mutex_init(&mtx_entry,0);
+	// pthread_mutex_init(&entry_remove_mtch_thread,0);
+	// pthread_mutex_init(&mtx_exact,0);
+	// pthread_mutex_init(&mtx_entry,0);
 
 	pthread_mutex_init(&pousths,0);
 
@@ -139,9 +139,9 @@ ErrorCode DestroyIndex() {
 		return EC_FAIL;
 
 	pthread_mutex_destroy(&mtx_docs);
-	pthread_mutex_destroy(&entry_remove_mtch_thread);
-	pthread_mutex_destroy(&mtx_exact);
-	pthread_mutex_destroy(&mtx_entry);
+	// pthread_mutex_destroy(&entry_remove_mtch_thread);
+	// pthread_mutex_destroy(&mtx_exact);
+	// pthread_mutex_destroy(&mtx_entry);
 
 	pthread_mutex_destroy(&pousths);
 
@@ -283,12 +283,14 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 
 ErrorCode MatchDocument_mt(Pointer arguments){
     // get the arguments to proceed
-    pthread_mutex_lock(&pousths);
+    // pthread_mutex_lock(&pousths);
     printf("Thread :%lu\n",pthread_self());
     int doc_id = ((DocArgs*)arguments)->id;
 	char* doc_str = ((DocArgs*)arguments)->str;
 	char *safe_str;
 	pthread_t thread_id = pthread_self();			// get threads id
+	if (doc_id == 960)
+		printf("960 end of doc\n");
 
     // initialize result list
 	entry_list* result_list;
@@ -322,11 +324,11 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		// lookup the hash table
 		entry* res_entry = map_find(exact_dist, token);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
 		if (res_entry != NULL) {
-			pthread_mutex_lock(&mtx_exact);
+			// pthread_mutex_lock(&mtx_exact);
 			entry_add_thread(res_entry, thread_id);					// add thread id to entry's matched threads
 			set_entry_dist(res_entry, thread_id, 0);							// set dist of this thread = 0 because it is from exact
 			add_entry(result_list, res_entry);						// append it in the result list
-			pthread_mutex_unlock(&mtx_exact);
+			// pthread_mutex_unlock(&mtx_exact);
 		}
 		// lookup trees with the higher match_dist value so it considers every match_dist from 1 to 3
 
@@ -353,17 +355,17 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
 			entry* entr = entry_list_node_value(lnode);
 			// pthread_t* thread_found  = get_entry_pthread_t(entr, thread_id);
-			pthread_mutex_lock(&mtx_entry);
+			// pthread_mutex_lock(&mtx_entry);
 			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))) {		// check if the entry for this query is valid
 				// if((doc->doc_id)==1){
 				// 	if(get_entry_pthread_t(entr, thread_id) != NULL)
 				// 		printf("Thread_id = %lu, target thread_id = %lu, entry_dist = %d, query->match_dist = %d\n",pthread_self(),*(get_entry_pthread_t(entr, thread_id)),get_entry_dist(entr, thread_id),query->match_dist);
 				// }
 				matched = false;
-				pthread_mutex_unlock(&mtx_entry);
+				// pthread_mutex_unlock(&mtx_entry);
 				break;
 			}
-			pthread_mutex_unlock(&mtx_entry);
+			// pthread_mutex_unlock(&mtx_entry);
 		}
 
 		// if query has been matched then add its id to the result queries
@@ -389,13 +391,13 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 
 	// destroy deque
 	deque_destroy(match_queries);
-	pthread_mutex_lock(&entry_remove_mtch_thread);
+	// pthread_mutex_lock(&entry_remove_mtch_thread);
 	// initialize all the entries' matched values for the next document
 	for (entry_list_node* lnode = get_first(result_list); lnode != LIST_EOF; lnode = get_next(result_list, lnode)) {
 		entry* value = entry_list_node_value(lnode);
 		entry_remove_thread(value, thread_id);				// remove thread id from entry's matched threads
 	}
-	pthread_mutex_unlock(&entry_remove_mtch_thread);
+	// pthread_mutex_unlock(&entry_remove_mtch_thread);
 
 	// destroy result list
 	destroy_entry_list(result_list);
@@ -410,7 +412,7 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 	deque_insert_last(docs, doc);
 	printf("2.Docs size = %d\n",deque_size(docs));
 	pthread_mutex_unlock(&mtx_docs);
-	pthread_mutex_unlock(&pousths);
+	// pthread_mutex_unlock(&pousths);
 
 
 	return EC_SUCCESS;

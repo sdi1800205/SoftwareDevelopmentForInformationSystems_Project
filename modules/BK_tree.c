@@ -15,7 +15,7 @@ struct  BK_tree {
     BK_node* root;		// root of tree/index
 	MatchType match_type;		// type that matches words
 	DestroyFunc destroy;		// function called when an entry is going to be deleted from the tree
-	pthread_mutex_t lock_tree;	//mutex for safe access on tree nodes' contents
+	// pthread_mutex_t lock_tree;	//mutex for safe access on tree nodes' contents
 };
 
 struct BK_node {
@@ -34,7 +34,7 @@ static Index* create_index(MatchType type, DestroyFunc destroy) {
 	indx->root = NULL;
 	indx->match_type = type;
 	indx->destroy = destroy;
-	pthread_mutex_init(&(indx->lock_tree),0);
+	// pthread_mutex_init(&(indx->lock_tree),0);
 	return indx;
 }
 
@@ -104,10 +104,10 @@ static entry* BK_insert_entry(entry *input, BK_node* tree_node, MatchType type) 
 }
 
 // this function checks recursively which nodes/words are valid for the requested word
-static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type, pthread_t target_thread, pthread_mutex_t lock_tree) {
+static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, entry_list* result, MatchType type, pthread_t target_thread) {
 	int dist = find_distance_word(w, get_entry_word(tree_node->centry), type);		// find distance between requested word and current node
 	if (dist <= threshold) {
-		pthread_mutex_lock(&lock_tree);
+		// pthread_mutex_lock(&lock_tree);
 		// check if the entry haw already get into results
 		if (get_entry_pthread_t(tree_node->centry, target_thread) != NULL) {		// case of this entry already been in results of current thread
 			if (dist < get_entry_dist(tree_node->centry, target_thread))		// we keep the minimum distance of this entry of this thread in the document
@@ -118,7 +118,7 @@ static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, 
 			set_entry_dist(tree_node->centry, target_thread, dist);				// we keep the distance that made this entry matched										// case of this entry first results-appearance
 			add_entry(result, tree_node->centry);					// we add the entry of the node to the result list
 		}
-		pthread_mutex_unlock(&lock_tree);
+		// pthread_mutex_unlock(&lock_tree);
 	}
 
 	// get the first node of the children's list
@@ -126,7 +126,7 @@ static entry_list* lookup_tree(const word w, BK_node* tree_node, int threshold, 
 	// checking all the children until the distance is higher than d+n
 	while (listnode != BK_LIST_EOF && listnode->node->dist <= dist + threshold) {
 		if (listnode->node->dist >= dist - threshold) {		// we also keep the nodes that their distance is lower than d-n
-			result = lookup_tree(w, listnode->node, threshold, result, type, target_thread, lock_tree);	// we call the function for the valid node
+			result = lookup_tree(w, listnode->node, threshold, result, type, target_thread);	// we call the function for the valid node
 		}
 		listnode = BK_list_next(listnode);	// go to the next child
 	}
@@ -209,7 +209,7 @@ ErrorCode lookup_entry_index(const word w, Index* ix, int threshold, entry_list*
 	else if (ix->root == NULL)	// case of tree being empty
 		return EC_SUCCESS;		// this is no mistake, its a possible outcome so continue
 	else
-		*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type, target_thread,ix->lock_tree);		// we call a recursive function for this job
+		*result = lookup_tree(w, ix->root, threshold, *result, ix->match_type, target_thread);		// we call a recursive function for this job
 	
 	return EC_SUCCESS;
 }
@@ -219,7 +219,7 @@ ErrorCode destroy_entry_index(Index* indx) {
 	ErrorCode err = destroy_tree(indx, indx->root);
 	if (err != EC_SUCCESS)
 		return EC_FAIL;
-	pthread_mutex_destroy(&(indx->lock_tree));
+	// pthread_mutex_destroy(&(indx->lock_tree));
 	free(indx);
 	return EC_SUCCESS;
 }

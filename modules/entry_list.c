@@ -23,8 +23,8 @@ struct entry
     Map dist;                       // map that holds for a matched thread the distance between a word and this word
     Set matched_threads;            // a set that keeps the thread ids that have made a match with this word
     
-    // pthread_mutex_t mtx_map;        //mutex to block threads that try to access the map of the entry simultaneously
-    // pthread_mutex_t mtx_set;        //mutex to block threads that try to access the set of the entry simultaneously
+    pthread_mutex_t mtx_map;        //mutex to block threads that try to access the map of the entry simultaneously
+    pthread_mutex_t mtx_set;        //mutex to block threads that try to access the set of the entry simultaneously
 };
 
 struct entry_list
@@ -69,8 +69,8 @@ ErrorCode create_entry(const word w, entry** e) {
     newEntry->matched_threads = set_create(compare_pthread_t, destroy_pthread_t);
 
     //initialize mutexes
-    // pthread_mutex_init(&(newEntry->mtx_map),0);
-    // pthread_mutex_init(&(newEntry->mtx_set),0);
+    pthread_mutex_init(&(newEntry->mtx_map),0);
+    pthread_mutex_init(&(newEntry->mtx_set),0);
 
     // assign the created entry to the pointer so as to be return (pass by reference)
     *e = newEntry;
@@ -88,8 +88,8 @@ ErrorCode destroy_entry(entry *e) {
     free(e->word);
     set_destroy(e->matched_threads);
     map_destroy(e->dist);
-    // pthread_mutex_destroy(&(e->mtx_map));
-    // pthread_mutex_destroy(&(e->mtx_set));
+    pthread_mutex_destroy(&(e->mtx_map));
+    pthread_mutex_destroy(&(e->mtx_set));
     free(e);
 
     return EC_SUCCESS;
@@ -214,9 +214,9 @@ void entry_add_thread(entry* entr, pthread_t id) {
         fprintf(stderr, "Fail in entry_add_thread\n");
         exit(EXIT_FAILURE);
     }
-    // pthread_mutex_lock(&(entr->mtx_set));
+    pthread_mutex_lock(&(entr->mtx_set));
     set_insert(entr->matched_threads, create_pthread_t(id));
-    // pthread_mutex_unlock(&(entr->mtx_set));
+    pthread_mutex_unlock(&(entr->mtx_set));
 }
 
 void entry_remove_thread(entry* entr, pthread_t id) {
@@ -224,9 +224,9 @@ void entry_remove_thread(entry* entr, pthread_t id) {
         fprintf(stderr, "Fail in entry_remove_thread\n");
         exit(EXIT_FAILURE);
     }
-    // pthread_mutex_lock(&(entr->mtx_set));
+    pthread_mutex_lock(&(entr->mtx_set));
     set_remove(entr->matched_threads, &id);
-    // pthread_mutex_unlock(&(entr->mtx_set));
+    pthread_mutex_unlock(&(entr->mtx_set));
 }
 
 
@@ -237,9 +237,9 @@ void set_entry_dist(entry* entr, pthread_t target_thread, int dist) {
         fprintf(stderr, "Fail in set_entry_matchdist\n");
         exit(EXIT_FAILURE);
     }
-    // pthread_mutex_lock(&(entr->mtx_map));
+    pthread_mutex_lock(&(entr->mtx_map));
     map_insert(entr->dist, create_pthread_t(target_thread), create_int(dist));
-    // pthread_mutex_unlock(&(entr->mtx_map));
+    pthread_mutex_unlock(&(entr->mtx_map));
 }
 
 ////////////////// get
@@ -256,9 +256,9 @@ int get_entry_dist(entry* entr, pthread_t target_thread) {
         fprintf(stderr, "Fail in set_entry_matchdist\n");
         exit(EXIT_FAILURE);
     }
-    // pthread_mutex_lock(&(entr->mtx_map));
+    pthread_mutex_lock(&(entr->mtx_map));
     int* dist = map_find(entr->dist, &target_thread);
-    // pthread_mutex_unlock(&(entr->mtx_map));
+    pthread_mutex_unlock(&(entr->mtx_map));
     if (dist == NULL) {
         fprintf(stderr, "Fail in get_entry_dist\n");
         exit(EXIT_FAILURE);
@@ -268,8 +268,8 @@ int get_entry_dist(entry* entr, pthread_t target_thread) {
 }
 
 pthread_t* get_entry_pthread_t(entry* entr, pthread_t id) {
-    // pthread_mutex_lock(&(entr->mtx_set));
+    pthread_mutex_lock(&(entr->mtx_set));
     pthread_t *ret_val = (pthread_t*)set_find(entr->matched_threads, &id);
-    // pthread_mutex_unlock(&(entr->mtx_set));
+    pthread_mutex_unlock(&(entr->mtx_set));
     return ret_val;
 }
