@@ -1,5 +1,5 @@
 #include <stdlib.h>
-
+#include <stdio.h>
 #include "job_scheduler.h"
 #include "threads.h"
 
@@ -12,29 +12,25 @@ JobScheduler* initialize_scheduler(int execution_threads){
 	sch->queue = queue_create();
 	sch->execution_threads = execution_threads;
 
-	pthread_cond_init(&(sch->cond_start_exec),0);
-	pthread_cond_init(&(sch->cond_end_exec),0);
-	pthread_cond_init(&(sch->cond_continue),0);
+	pthread_cond_init(&(sch->cond_start_exec),NULL);
+	pthread_cond_init(&(sch->cond_end_exec),NULL);
+	pthread_cond_init(&(sch->cond_continue),NULL);
 
-	pthread_mutex_init(&(sch->mtx_start_exec),0);
-	pthread_mutex_init(&(sch->mtx_end_exec),0);
-	pthread_mutex_init(&(sch->mtx_continue),0);
+	pthread_mutex_init(&(sch->mtx_start_exec),NULL);
+	pthread_mutex_init(&(sch->mtx_end_exec),NULL);
+	pthread_mutex_init(&(sch->mtx_continue),NULL);
 
-	pthread_mutex_init(&(sch->mtx_read),0);
+	pthread_mutex_init(&(sch->mtx_read),NULL);
 
 	pthread_barrier_init(&(sch->barrier),NULL,sch->execution_threads);
 
 	sch->tids = (pthread_t *)malloc(sizeof(pthread_t)*execution_threads);		//array containing the IDs of the created threads
-	for(int i=0; i<execution_threads; i++){
-		if(pthread_create(&(sch->tids[i]), NULL , start_routine, NULL) < 0){
-			exit(EXIT_FAILURE);
-		}
-	}
 
 	return sch;
 }
 
 int submit_job(JobScheduler* sch, Job* j){
+	printf("Called submit_job\n");
 	pthread_mutex_lock(&(sch->mtx_read));
 	queue_push(sch->queue, j);
 	pthread_mutex_unlock(&(sch->mtx_read));
@@ -52,14 +48,15 @@ int execute_all_jobs(JobScheduler* sch){
 
 int wait_all_tasks_finish(JobScheduler* sch){
 	pthread_mutex_lock(&(sch->mtx_end_exec));
-	while(!stop_wait){
+	do{
 		pthread_cond_wait(&(sch->cond_end_exec),&(sch->mtx_end_exec));
-	}
+	}while(!stop_wait);
 	pthread_mutex_unlock(&(sch->mtx_end_exec));
 	can_exec = 0;
 	stop_wait = 0;
 	can_continue = 1;
 	pthread_cond_broadcast(&(sch->cond_continue));
+	printf("Stopped Waiting\n");
 
 	return 0;
 }

@@ -13,6 +13,7 @@
 #include "hamming.h"
 #include "job_scheduler.h"
 #include "job.h"
+#include "threads.h"
 
 
 #define THREADS_NUM 3
@@ -115,6 +116,13 @@ ErrorCode InitializeIndex() {
 
 	// create JobScheduler
 	JobSch = initialize_scheduler(THREADS_NUM);
+
+	//create threads
+	for(int i=0; i<JobSch->execution_threads; i++){
+		if(pthread_create(&(JobSch->tids[i]), NULL , start_routine, NULL) < 0){
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	return EC_SUCCESS;
 }
@@ -273,9 +281,10 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 
 ///////////////////////////////// multi-threading ////////////////////////////////////
 
-ErrorCode MatchDocument_mt(Pointer arguments) {
+ErrorCode MatchDocument_mt(Pointer arguments){
     // get the arguments to proceed
     pthread_mutex_lock(&pousths);
+    printf("Thread :%lu\n",pthread_self());
     int doc_id = ((DocArgs*)arguments)->id;
 	char* doc_str = ((DocArgs*)arguments)->str;
 	char *safe_str;
@@ -397,8 +406,9 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 	// for(int i=0; i<doc->num_res; i++){
 	// 	printf("Thread :%lu i:%d query:%d\n",pthread_self(),i,doc->query_ids[i]);
 	// }
-
+	printf("1.Docs size = %d\n",deque_size(docs));
 	deque_insert_last(docs, doc);
+	printf("2.Docs size = %d\n",deque_size(docs));
 	pthread_mutex_unlock(&mtx_docs);
 	pthread_mutex_unlock(&pousths);
 

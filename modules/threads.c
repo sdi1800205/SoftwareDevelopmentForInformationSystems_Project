@@ -19,13 +19,13 @@ Job* take_job() {
 }
 
 void* start_routine(void* arg){
-
+	printf("Threads running %d\n",JobSch->execution_threads);
 	while(!stop_threads){
-
+		printf("Thread %lu started!,stop_threads %d\n",pthread_self());
 		pthread_mutex_lock(&(JobSch->mtx_start_exec));
-		while(!can_exec){
+		do{
 			pthread_cond_wait(&(JobSch->cond_start_exec) , &(JobSch->mtx_start_exec) );
-		}
+		}while(!can_exec);
 		pthread_mutex_unlock(&(JobSch->mtx_start_exec));
 
 		printf("Thread %lu got in!,stop_threads %d\n",pthread_self(),stop_threads);
@@ -46,9 +46,9 @@ void* start_routine(void* arg){
 		pthread_cond_signal(&(JobSch->cond_end_exec));
 
 		pthread_mutex_lock(&(JobSch->mtx_continue));
-		while(!can_continue){
+		do{
 			pthread_cond_wait(&(JobSch->cond_continue) , &(JobSch->mtx_continue) );
-		}
+		}while(!can_continue);
 		pthread_mutex_unlock(&(JobSch->mtx_continue));
 	}
 
