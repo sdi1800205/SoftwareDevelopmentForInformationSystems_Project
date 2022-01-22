@@ -47,7 +47,9 @@ int execute_all_jobs(JobScheduler* sch){
 }
 
 int wait_all_tasks_finish(JobScheduler* sch){
+	pthread_mutex_lock(&(sch->mtx_end_exec));
 	pthread_cond_wait(&(sch->cond_end_exec),&(sch->mtx_end_exec));
+	pthread_mutex_unlock(&(sch->mtx_end_exec));
 	can_exec = 0;		//reset variable
 
 	return 0;
@@ -56,6 +58,7 @@ int wait_all_tasks_finish(JobScheduler* sch){
 int destroy_scheduler(JobScheduler* sch){
 	stop_threads = 1;
 	execute_all_jobs(sch);
+	wait_all_tasks_finish(sch);
 
 	for(int i=0; i<sch->execution_threads; i++){
 		pthread_join(sch->tids[i],0);
