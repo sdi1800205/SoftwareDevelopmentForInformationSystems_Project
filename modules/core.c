@@ -15,7 +15,7 @@
 #include "job.h"
 
 
-#define THREADS_NUM 2
+#define THREADS_NUM 1
 
 
 // declaration of multi-thread functions
@@ -366,10 +366,10 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 
 	// add doc in the set of docs
 	pthread_mutex_lock(&mtx_docs);
-	printf("Thread :%lu doc:%d num_of_queries:%d\n",pthread_self(),doc->doc_id,doc->num_res);
-	for(int i=0; i<doc->num_res; i++){
-		printf("Thread :%lu i:%d query:%d\n",pthread_self(),i,doc->query_ids[i]);
-	}
+	// printf("Thread :%lu doc:%d num_of_queries:%d\n",pthread_self(),doc->doc_id,doc->num_res);
+	// for(int i=0; i<doc->num_res; i++){
+	// 	printf("Thread :%lu i:%d query:%d\n",pthread_self(),i,doc->query_ids[i]);
+	// }
 
 	deque_insert_last(docs, doc);
 	pthread_mutex_unlock(&mtx_docs);
