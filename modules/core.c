@@ -16,7 +16,7 @@
 #include "threads.h"
 
 
-#define THREADS_NUM 2
+#define THREADS_NUM 1
 
 
 // declaration of multi-thread functions
@@ -41,6 +41,11 @@ typedef struct Document
 
 
 //////////// extra functions ////////////////
+
+// compares 2 entries
+int compare_entries(Pointer a, Pointer b) {
+	return exact_distance(get_entry_word((entry*)a), get_entry_word((entry*)b));
+}
 
 // compares 2 integers (just like the declaration of CompareFunc says in common_types.h)
 int compare_queries(Pointer a, Pointer b) {
@@ -96,7 +101,7 @@ ErrorCode InitializeIndex() {
 
 	// create dictionary for exact distance
 	// we use the entry->word as a key and entry as a value in the dictionary, so to delete the it only takes to delete entry
-	exact_dist = map_create(compare_strings, NULL, (DestroyFunc)destroy_entry);		//(key, value) -> (word, entry), "word" = entry->word
+	exact_dist = map_create(compare_entries, NULL, (DestroyFunc)destroy_entry);		//(key, value) -> (word, entry), "word" = entry->word
 	map_set_hash_function(exact_dist, hash_string);
 
 	// create BK_tree for edit distance
@@ -167,12 +172,16 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 	switch (match_type)	{
 	case MT_EXACT_MATCH:
 		while (token != NULL) {
-			entry* old_entry = map_find(exact_dist, token);		// check if the entry's word already exists in the map
+			entry* target_entry;
+			create_entry(token, &target_entry);
+			entry* old_entry = map_find(exact_dist, target_entry);		// check if the entry's word already exists in the map
 
-			if (old_entry != NULL)										// case in which the entry's word already exists in the map
+			if (old_entry != NULL) {									// case in which the entry's word already exists in the map
 				entr = old_entry;										// keep old entry in current entries value so the query can have access to it, since the new entry destroyed
+				destroy_entry(target_entry);							// deallocate target entry
+			}
 			else {														// case of entry's word first appearance
-				create_entry(token, &entr);								// create a new entry for current word
+				entr = target_entry;									// create a new entry for current word
 				map_insert(exact_dist, get_entry_word(entr), entr);						// we pass as key and value the same value, so the set_find returns the entry we search as a key
 			}
 			add_entry(query->entrylist, entr);						// we add entry in current query's entry_list
@@ -320,12 +329,16 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		// start matching
 		
 		// lookup the hash table
-		entry* res_entry = map_find(exact_dist, token);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
+		entry* target_entry;
+		create_entry(token, &target_entry);
+		entry* res_entry = map_find(exact_dist, target_entry);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
+		destroy_entry(target_entry);
 		if (res_entry != NULL) {
 			// pthread_mutex_lock(&mtx_exact);
 			entry_add_thread(res_entry, thread_id);					// add thread id to entry's matched threads
 			set_entry_dist(res_entry, thread_id, 0);							// set dist of this thread = 0 because it is from exact
 			add_entry(result_list, res_entry);						// append it in the result list
+			if (doc_id == 1) printf("entry matched with thread %lu is: %s\n", thread_id, get_entry_word(res_entry));
 			// pthread_mutex_unlock(&mtx_exact);
 		}
 		// lookup trees with the higher match_dist value so it considers every match_dist from 1 to 3
