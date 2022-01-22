@@ -3,7 +3,7 @@
 #include "job_scheduler.h"
 #include "threads.h"
 
-int stop_threads = 0,can_exec = 0, can_continue = 0;
+int stop_threads = 0,can_exec = 0, finish = 0;
 extern int stop_wait;
 
 int threads_passed = 0;
@@ -53,7 +53,7 @@ int execute_all_jobs(JobScheduler* sch){
 
 int wait_all_tasks_finish(JobScheduler* sch){
 	pthread_mutex_lock(&(sch->mtx_end_exec));
-	while(!stop_wait){
+	while(!stop_wait && !finish) {
 		pthread_cond_wait(&(sch->cond_end_exec),&(sch->mtx_end_exec));
 	}
 	pthread_mutex_unlock(&(sch->mtx_end_exec));
@@ -71,6 +71,7 @@ int destroy_scheduler(JobScheduler* sch){
 	printf("At Destroy Scheduler\n");
 
 	stop_threads = 1;
+	finish = 1;
 	execute_all_jobs(sch);
 	wait_all_tasks_finish(sch);
 

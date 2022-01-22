@@ -16,7 +16,7 @@
 #include "threads.h"
 
 
-#define THREADS_NUM 4
+#define THREADS_NUM 2
 
 
 // declaration of multi-thread functions
@@ -80,7 +80,6 @@ pthread_mutex_t pousths;
 //////////// structs for matchtypes ////////////
 // we create structs depend on the match_type and the match_distance
 Map exact_dist;				// struct for exact distance
-
 Index* edit_dist;			// struct for edit distance
 hamIndex* ham_dist;			// struct for hamming distance
 
@@ -284,13 +283,10 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 ErrorCode MatchDocument_mt(Pointer arguments){
     // get the arguments to proceed
     // pthread_mutex_lock(&pousths);
-    printf("Thread :%lu\n",pthread_self());
     int doc_id = ((DocArgs*)arguments)->id;
 	char* doc_str = ((DocArgs*)arguments)->str;
-	char *safe_str;
+	// char *safe_str;
 	pthread_t thread_id = pthread_self();			// get threads id
-	if (doc_id == 960)
-		printf("960 end of doc\n");
 
     // initialize result list
 	entry_list* result_list;
@@ -305,12 +301,14 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 	Map doc_words = map_create(compare_strings, (DestroyFunc)free, NULL);		// (key, value) -> (word, word), so we delete only key or value
 	map_set_hash_function(doc_words, hash_string);
 
-	word token = strtok_r((word)doc_str, " ",&safe_str);
+	word token = strtok((word)doc_str, " ");
+	// word token = strtok_r((word)doc_str, " ",&safe_str);
 	
 	while (token != NULL){
 		// deduplication of doc's words
 		if ((map_find(doc_words, token)) != NULL) {	// if the word exists in the set means that it has already been checked
-			token = strtok_r(NULL, " ",&safe_str);		// take new word
+			token = strtok(NULL, " ");		// take new word
+			// token = strtok_r(NULL, " ",&safe_str);		// take new word
 			continue;
 		}
 		else {										// case of not found the word in the set
@@ -339,7 +337,8 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		if ((lookup_hamming_index(token, ham_dist, 3, &result_list, thread_id)) != EC_SUCCESS)
 			return EC_FAIL;
 
-		token = strtok_r(NULL, " ",&safe_str);
+		token = strtok(NULL, " ");
+		// token = strtok_r(NULL, " ",&safe_str);
 	}
 
 	map_destroy(doc_words);		// destroy the map of document's words

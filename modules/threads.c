@@ -30,6 +30,12 @@ void* start_routine(void* arg){
 		}
 		pthread_mutex_unlock(&(JobSch->mtx_start_exec));
 
+		if (stop_threads) {
+			stop_wait = 1;
+			pthread_cond_signal(&(JobSch->cond_end_exec));
+			break;
+		}
+
 		printf("Thread %lu got in!,stop_threads %d\n",pthread_self(),stop_threads);
 				
 		while(1) {
@@ -55,7 +61,7 @@ void* start_routine(void* arg){
 		}
 		pthread_mutex_unlock(&(JobSch->mtx_threads_passed));
 
-	} while(!stop_threads);
+	} while(1);
 
 	printf("Thread %lu finished!,stop_threads %d\n",pthread_self(),stop_threads);
 	

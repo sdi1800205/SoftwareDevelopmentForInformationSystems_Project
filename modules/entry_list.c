@@ -10,12 +10,6 @@
 // #define _DEBUG_ 1
 
 
-// hash function for pthread_t
-uint hash_pthread_t(Pointer value) {
-    return *(pthread_t*)value%MAX_INT;
-}
-
-
 struct entry
 {
     word word;
@@ -41,6 +35,12 @@ struct entry_list_node {
     entry_list_node* next;
 };
 
+
+
+// hash function for pthread_t
+uint hash_pthread_t(Pointer value) {
+    return *(pthread_t*)value%MAX_INT;
+}
 
 
 ErrorCode create_entry(const word w, entry** e) {
