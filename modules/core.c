@@ -21,7 +21,6 @@
 // declaration of multi-thread functions
 ErrorCode MatchDocument_mt(Pointer);
 
-
 // Keeps all information related to an active query
 typedef struct Query
 {
@@ -72,6 +71,7 @@ Set queries;
 // Keeps all currently available results that has not been returned yet
 Deque docs;
 pthread_mutex_t mtx_docs;
+pthread_mutex_t pousths;
 
 //////////// structs for matchtypes ////////////
 // we create structs depend on the match_type and the match_distance
@@ -102,11 +102,12 @@ ErrorCode InitializeIndex() {
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
 
-	// create JobScheduler
-	JobSch = initialize_scheduler(THREADS_NUM);
-
 	// initialize mutexes for docs and exact_dist
 	pthread_mutex_init(&mtx_docs,0);
+	pthread_cond_init(&pousths,0);
+
+	// create JobScheduler
+	JobSch = initialize_scheduler(THREADS_NUM);
 
 	return EC_SUCCESS;
 }
@@ -259,9 +260,10 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 
 ErrorCode MatchDocument_mt(Pointer arguments) {
     // get the arguments to proceed
-    int doc_id = ((DocArgs*)arguments)->id;
-    char* doc_str = ((DocArgs*)arguments)->str;
 
+    int doc_id = ((DocArgs*)arguments)->id;
+	char* doc_str = ((DocArgs*)arguments)->str;
+	char *safe_str;
 	pthread_t thread_id = pthread_self();			// get threads id
 
     // initialize result list
@@ -277,12 +279,12 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 	Map doc_words = map_create(compare_strings, (DestroyFunc)free, NULL);		// (key, value) -> (word, word), so we delete only key or value
 	map_set_hash_function(doc_words, hash_string);
 
-	word token = strtok((word)doc_str, " ");
-
+	word token = strtok_r((word)doc_str, " ",&safe_str);
+	//pthread_mutex_lock(&pousths);
 	while (token != NULL) {
 		// deduplication of doc's words
 		if ((map_find(doc_words, token)) != NULL) {	// if the word exists in the set means that it has already been checked
-			token = strtok(NULL, " ");		// take new word
+			token = strtok_r(NULL, " ",&safe_str);		// take new word
 			continue;
 		}
 		else {										// case of not found the word in the set
@@ -311,7 +313,7 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 		if ((lookup_hamming_index(token, ham_dist, 3, &result_list, thread_id)) != EC_SUCCESS)
 			return EC_FAIL;
 		
-		token = strtok(NULL, " ");
+		token = strtok_r(NULL, " ",&safe_str);
 	}
 	map_destroy(doc_words);		// destroy the map of document's words
 
@@ -327,6 +329,10 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 			entry* entr = entry_list_node_value(lnode);
 			// pthread_t* thread_found  = get_entry_pthread_t(entr, thread_id);
 			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))) {		// check if the entry for this query is valid
+				if((doc->doc_id)==1){
+					if(get_entry_pthread_t(entr, thread_id) != NULL)
+						printf("Thread_id = %lu, target thread_id = %lu, entry_dist = %d, query->match_dist = %d\n",pthread_self(),*(get_entry_pthread_t(entr, thread_id)),get_entry_dist(entr, thread_id),query->match_dist);
+				}
 				matched = false;
 				break;
 			}
@@ -337,6 +343,7 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 			deque_insert_last(match_queries, &(query->query_id));
 	}
 	doc->num_res = deque_size(match_queries);				// store number of results
+	
 
 	// pass all the result queries in the documents array
 	if (doc->num_res > 0) {										// there are result queries
@@ -366,13 +373,17 @@ ErrorCode MatchDocument_mt(Pointer arguments) {
 
 	// add doc in the set of docs
 	pthread_mutex_lock(&mtx_docs);
+<<<<<<< HEAD
 	// printf("Thread :%lu doc:%d num_of_queries:%d\n",pthread_self(),doc->doc_id,doc->num_res);
+=======
+	// printf("2.Thread :%lu doc:%d num_of_queries:%d\n",pthread_self(),doc->doc_id,doc->num_res);
+>>>>>>> 78642f03ffaa9369c87011b8aa121c35e8215f11
 	// for(int i=0; i<doc->num_res; i++){
 	// 	printf("Thread :%lu i:%d query:%d\n",pthread_self(),i,doc->query_ids[i]);
 	// }
 
 	deque_insert_last(docs, doc);
 	pthread_mutex_unlock(&mtx_docs);
-
+	//pthread_mutex_unlock(&pousths);
 	return EC_SUCCESS;
 }
