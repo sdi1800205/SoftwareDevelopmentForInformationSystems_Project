@@ -132,18 +132,85 @@ ErrorCode DestroyIndex() {
 	return EC_SUCCESS;
 }
 
-ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ) {
+ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ){
+	char* text = malloc(MAX_QUERY_LENGTH * sizeof(char));
+	strcpy(text, query_str);
+
+	// create a job and push it to the scheduler
+	Job* job = job_create(StartQuery_mt, sqargs_create(query_id,text,match_type,match_dist));
+	submit_job(JobSch, job);
+
+	return EC_SUCCESS;
+}
+
+ErrorCode EndQuery(QueryID query_id) {
+	// create a job and push it to the scheduler
+	Job* job = job_create(EndQuery_mt, eqargs_create(query_id));
+	submit_job(JobSch, job);
+	
+	return EC_SUCCESS;
+}
+
+ErrorCode MatchDocument(DocID doc_id, const char * doc_str) {
+	// check if there are jobs to execute, and if they do execute them
+	if (jobscheduler_size(JobSch) > 0 && !(JobSch->docs)){
+		if (execute_all_jobs(JobSch) < 0)
+			return EC_FAIL;
+		if (wait_all_tasks_finish(JobSch) < 0)
+			return EC_FAIL;
+		JobSch->docs = true;		//all start/end query jobs have been executed, so now we fill the scheduler with match document jobs 
+	}
+
+	// allocate memory for documents string
+	char* text = malloc(MAX_DOC_LENGTH * sizeof(char));
+	strcpy(text, doc_str);
+
+	// create a job and push it to the scheduler
+	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, text));
+	submit_job(JobSch, job);
+
+	return EC_SUCCESS;
+}
+
+ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID ** p_query_ids) {
+	// check if there are jobs to execute, and if they do execute them
+	if (jobscheduler_size(JobSch) > 0 && JobSch->docs) {
+		if (execute_all_jobs(JobSch) < 0)
+			return EC_FAIL;
+		if (wait_all_tasks_finish(JobSch) < 0)
+			return EC_FAIL;
+		JobSch->docs = false;
+	}
+
+
+	// Get the first undeliverd result from "docs" and return it
+	if(deque_size(docs) == 0) return EC_NO_AVAIL_RES;
+	
+	Document* doc = deque_get_at(docs, 0);		// get first document
+	*p_doc_id = doc->doc_id;
+	*p_num_res = doc->num_res;
+	*p_query_ids = doc->query_ids;
+
+	deque_remove_first(docs);
+
+	return EC_SUCCESS;
+}
+
+
+
+///////////////////////////////// multi-threading ////////////////////////////////////
+ErrorCode StartQuery_mt(Pointer arguments){
 	Query* query = malloc(sizeof(*query));	// allocate memory for the new query
-	query->query_id = query_id;
-	query->match_type = match_type;
-	query->match_dist = match_dist;
+	query->query_id = ((SQArgs*)arguments)->id;
+	query->match_type = ((SQArgs*)arguments)->match_type;
+	query->match_dist = ((SQArgs*)arguments)->match_dist;
 	create_entry_list(&(query->entrylist), NULL);		// we don't want the entry_list to destroy the entries because the structs will do that
 
 	// add query in the set of queries
 	set_insert(queries, query);
 
 	// add query's words into the correct struct
-	char* token = strtok((word)query_str, " ");
+	char* token = strtok(((SQArgs*)arguments)->str, " ");
 	entry* entr;
 
 	// check in which struct the query should be inserted
@@ -210,66 +277,18 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 	return EC_SUCCESS;
 }
 
-ErrorCode EndQuery(QueryID query_id) {
+ErrorCode EndQuery_mt(Pointer arguments) {
+	unsigned int query_id = ((EQArgs*)arguments)->id;
 	Query target_query = {query_id, NULL, -1, -1};
-	//mutex lock
+	
 	// remove query from set of queries
 	if (!(set_remove(queries, &target_query))) {
 		printf("EndQuery: fail in set_remove\n");
 		return EC_FAIL;
 	}
-	//mutex unlock
-	return EC_SUCCESS;
-}
-
-ErrorCode MatchDocument(DocID doc_id, const char * doc_str) {
-	// check if there are jobs to execute, and if they do execute them
-	if (jobscheduler_size(JobSch) > 0 && !(JobSch->docs)){
-		if (execute_all_jobs(JobSch) < 0)
-			return EC_FAIL;
-		if (wait_all_tasks_finish(JobSch) < 0)
-			return EC_FAIL;
-		JobSch->docs = true;		//all start/end query jobs have been executed, so now we fill the scheduler with match document jobs 
-	}
-
-	// allocate memory for documents string
-	char* text = malloc(MAX_DOC_LENGTH * sizeof(char));
-	strcpy(text, doc_str);
-
-	// create a job and push it to the scheduler
-	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, text));
-	submit_job(JobSch, job);
-
-	return EC_SUCCESS;
-}
-
-ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID ** p_query_ids) {
-	// check if there are jobs to execute, and if they do execute them
-	if (jobscheduler_size(JobSch) > 0) {
-		if (execute_all_jobs(JobSch) < 0)
-			return EC_FAIL;
-		if (wait_all_tasks_finish(JobSch) < 0)
-			return EC_FAIL;
-		JobSch->docs = false;
-	}
-
-
-	// Get the first undeliverd result from "docs" and return it
-	if(deque_size(docs) == 0) return EC_NO_AVAIL_RES;
 	
-	Document* doc = deque_get_at(docs, 0);		// get first document
-	*p_doc_id = doc->doc_id;
-	*p_num_res = doc->num_res;
-	*p_query_ids = doc->query_ids;
-
-	deque_remove_first(docs);
-
 	return EC_SUCCESS;
 }
-
-
-
-///////////////////////////////// multi-threading ////////////////////////////////////
 
 ErrorCode MatchDocument_mt(Pointer arguments){
     // get the arguments to proceed
