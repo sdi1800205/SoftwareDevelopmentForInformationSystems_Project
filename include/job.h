@@ -4,8 +4,9 @@
 #include "core.h"
 
 typedef struct Job{
-	RoutineFunc routine;	//code to execute
-	Pointer arguments;	//pointer to the corresponding arguments struct
+	RoutineFunc routine;	// code to execute
+	Pointer arguments;		// pointer to the corresponding arguments struct
+	char type;				// variable that holds the type of job(start/end query or match document)
 }Job;
 
 
@@ -26,9 +27,14 @@ typedef struct EQArgs{		//EndQuery arguments
 }EQArgs;
 
 // Job functions
-Job* job_create(RoutineFunc routine, Pointer arguments);
+Job* job_create(RoutineFunc routine, Pointer arguments, char job_type);
 void job_destroy(Job* job);
 
 // argument structs' functions
 DocArgs* docargs_create(DocID id, char* str);
+SQArgs* sqargs_create(QueryID id, char* str, MatchType match_type, int match_dist);
+EQArgs* eqargs_create(QueryID id);
+
 void docargs_destroy(DocArgs* args);
+void sqargs_destroy(SQArgs* args);
+void eqargs_destroy(EQArgs* args);
