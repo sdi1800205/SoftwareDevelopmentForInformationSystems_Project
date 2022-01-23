@@ -16,7 +16,7 @@
 #include "threads.h"
 
 
-#define THREADS_NUM 2
+#define THREADS_NUM 4
 
 
 // declaration of multi-thread functions
@@ -72,11 +72,7 @@ Set queries;
 // Keeps all currently available results that has not been returned yet
 Deque docs;
 pthread_mutex_t mtx_docs;
-// pthread_mutex_t entry_remove_mtch_thread;
-// pthread_mutex_t mtx_exact;
-// pthread_mutex_t mtx_entry;
 
-pthread_mutex_t pousths;
 //////////// structs for matchtypes ////////////
 // we create structs depend on the match_type and the match_distance
 Map exact_dist;				// struct for exact distance
@@ -93,6 +89,7 @@ ErrorCode InitializeIndex() {
 	// initialize structs for queries and documents
 	queries = set_create(compare_queries, destroy_query);
 	docs = deque_create(0, destroy_document);
+	pthread_mutex_init(&mtx_docs,0);	// initialize mutex for docs
 
 	// create dictionary for exact distance
 	// we use the entry->word as a key and entry as a value in the dictionary, so to delete the it only takes to delete entry
@@ -105,14 +102,6 @@ ErrorCode InitializeIndex() {
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
 
-	// initialize mutexes for docs and exact_dist
-	pthread_mutex_init(&mtx_docs,0);
-	// pthread_mutex_init(&entry_remove_mtch_thread,0);
-	// pthread_mutex_init(&mtx_exact,0);
-	// pthread_mutex_init(&mtx_entry,0);
-
-	pthread_mutex_init(&pousths,0);
-
 	// create JobScheduler
 	JobSch = initialize_scheduler(THREADS_NUM);
 
@@ -122,6 +111,8 @@ ErrorCode InitializeIndex() {
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	printf("Threads number: %d\n", JobSch->execution_threads);
 
 	return EC_SUCCESS;
 }
@@ -133,23 +124,15 @@ ErrorCode DestroyIndex() {
 
 	set_destroy(queries);
 	deque_destroy(docs);
+	pthread_mutex_destroy(&mtx_docs);
 
 	if (destroy_scheduler(JobSch) < 0)
 		return EC_FAIL;
-
-	pthread_mutex_destroy(&mtx_docs);
-	// pthread_mutex_destroy(&entry_remove_mtch_thread);
-	// pthread_mutex_destroy(&mtx_exact);
-	// pthread_mutex_destroy(&mtx_entry);
-
-	pthread_mutex_destroy(&pousths);
 
 	return EC_SUCCESS;
 }
 
 ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ) {
-	// check if there are jobs to execute, and if they do execute them
-	// printf("StartQuery\n");
 	Query* query = malloc(sizeof(*query));	// allocate memory for the new query
 	query->query_id = query_id;
 	query->match_type = match_type;
@@ -189,7 +172,7 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 				exit(EXIT_FAILURE);
 			}
 			
-			// check if entry was inserted or an old one just update its payload
+			// check if entry was inserted or an old one already existed
 			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
 				destroy_entry(entr);		// destroy new entry because it didn't inserted
 
@@ -209,7 +192,7 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 				exit(EXIT_FAILURE);
 			}
 
-			// check if entry was inserted or an old one just update its payload
+			// check if entry was inserted or an old one already existed
 			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
 				destroy_entry(entr);		// destroy new entry because it didn't inserted
 
@@ -228,7 +211,6 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 }
 
 ErrorCode EndQuery(QueryID query_id) {
-	// printf("EndQuery\n");
 	Query target_query = {query_id, NULL, -1, -1};
 	
 	// remove query from set of queries
@@ -282,10 +264,8 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 
 ErrorCode MatchDocument_mt(Pointer arguments){
     // get the arguments to proceed
-    // pthread_mutex_lock(&pousths);
     int doc_id = ((DocArgs*)arguments)->id;
 	char* doc_str = ((DocArgs*)arguments)->str;
-	char *safe_str;
 	pthread_t thread_id = pthread_self();			// get threads id
 
     // initialize result list
@@ -301,13 +281,12 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 	Map doc_words = map_create(compare_strings, (DestroyFunc)free, NULL);		// (key, value) -> (word, word), so we delete only key or value
 	map_set_hash_function(doc_words, hash_string);
 
-	// word token = strtok((word)doc_str, " ");
+	char *safe_str;
 	word token = strtok_r((word)doc_str, " ",&safe_str);
 
 	while (token != NULL){
 		// deduplication of doc's words
 		if ((map_find(doc_words, token)) != NULL) {	// if the word exists in the set means that it has already been checked
-			// token = strtok(NULL, " ");		// take new word
 			token = strtok_r(NULL, " ",&safe_str);		// take new word
 			continue;
 		}
@@ -322,33 +301,22 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		// lookup the hash table
 		entry* res_entry = map_find(exact_dist, token);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
 		if (res_entry != NULL) {
-			// pthread_mutex_lock(&mtx_exact);
 			entry_add_thread(res_entry, thread_id);					// add thread id to entry's matched threads
 			set_entry_dist(res_entry, thread_id, 0);							// set dist of this thread = 0 because it is from exact
 			add_entry(result_list, res_entry);						// append it in the result list
-			// pthread_mutex_unlock(&mtx_exact);
 		}
 		// lookup trees with the higher match_dist value so it considers every match_dist from 1 to 3
-pthread_mutex_lock(&pousths);
+
 		// lookup the BK_tree of edit distance
 		if ((lookup_entry_index(token, edit_dist, 3, &result_list, thread_id)) != EC_SUCCESS)
 			return EC_FAIL;
-pthread_mutex_unlock(&pousths);
 		
 		// lookup the Hamming BK_tree of hamming distance
 		if ((lookup_hamming_index(token, ham_dist, 3, &result_list, thread_id)) != EC_SUCCESS)
 			return EC_FAIL;
 
-		// token = strtok(NULL, " ");
 		token = strtok_r(NULL, " ",&safe_str);
 	}
-	// if (doc_id == 10) {
-	// 	for (entry_list_node* lnode = get_first(result_list); lnode != LIST_EOF; lnode = get_next(result_list, lnode)) {
-	// 		entry* temp = entry_list_node_value(lnode);
-	// 		printf("%s %lu %d ", get_entry_word(temp), *(get_entry_pthread_t(temp, thread_id)), get_entry_dist(temp, thread_id));
-	// 	}
-	// 	printf("\n");
-	// }
 	map_destroy(doc_words);		// destroy the map of document's words
 
 	Deque match_queries = deque_create(0, NULL);		// create a deque to store temporary the matching queries
@@ -358,25 +326,14 @@ pthread_mutex_unlock(&pousths);
 		Query* query = set_node_value(queries, snode);
 		bool matched = true;		// if all the query's words are true then this variable will remain true, else will turn to false
 
-		// if (query->query_id == 8 && doc_id == 10) printf("thread: %lu, Query id: %d\n", thread_id, query->query_id);
 		// check every entry
 		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
 			entry* entr = entry_list_node_value(lnode);
-			// if (query->query_id == 8 && doc_id == 10) printf("%s ", get_entry_word(entr));
-			// if (query->query_id == 8 && doc_id == 10) printf("%lu ", *(get_entry_pthread_t(entr, thread_id)));
-			// if (query->query_id == 8 && doc_id == 10) printf("%d ", get_entry_dist(entr, thread_id));
-			// pthread_t* thread_found  = get_entry_pthread_t(entr, thread_id);
-			// pthread_mutex_lock(&mtx_entry);
 			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))) {		// check if the entry for this query is valid
-				// if (query->query_id == 8 && doc_id == 10) printf("False at word: %s ", get_entry_word(entr));
-				// if (query->query_id == 8 && doc_id == 10) printf("%d ", get_entry_dist(entr, thread_id));
 				matched = false;
-				// pthread_mutex_unlock(&mtx_entry);
 				break;
 			}
-			// pthread_mutex_unlock(&mtx_entry);
 		}
-		if (query->query_id == 8 && doc_id == 10) printf("\n");
 
 		// if query has been matched then add its id to the result queries
 		if (matched)
@@ -413,16 +370,8 @@ pthread_mutex_unlock(&pousths);
 
 	// add doc in the set of docs
 	pthread_mutex_lock(&mtx_docs);
-	// printf("2.Thread :%lu doc:%d num_of_queries:%d\n",pthread_self(),doc->doc_id,doc->num_res);
-	// for(int i=0; i<doc->num_res; i++){
-	// 	printf("Thread :%lu i:%d query:%d\n",pthread_self(),i,doc->query_ids[i]);
-	// }
-	// printf("1.Docs size = %d\n",deque_size(docs));
 	deque_insert_last(docs, doc);
-	// printf("2.Docs size = %d\n",deque_size(docs));
 	pthread_mutex_unlock(&mtx_docs);
-	// pthread_mutex_unlock(&pousths);
-
 
 	return EC_SUCCESS;
 }
