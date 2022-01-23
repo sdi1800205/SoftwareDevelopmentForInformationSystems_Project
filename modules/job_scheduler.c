@@ -33,7 +33,7 @@ JobScheduler* initialize_scheduler(int execution_threads){
 }
 
 int submit_job(JobScheduler* sch, Job* j){
-	printf("Called submit_job\n");
+	// printf("Called submit_job\n");
 	pthread_mutex_lock(&(sch->mtx_read));
 	queue_push(sch->queue, j);
 	pthread_mutex_unlock(&(sch->mtx_read));
@@ -62,7 +62,7 @@ int wait_all_tasks_finish(JobScheduler* sch){
 	stop_wait = 0;
 	// can_continue = 1;
 	// pthread_cond_broadcast(&(sch->cond_continue));
-	printf("Stopped Waiting\n");
+	// printf("Stopped Waiting\n");
 
 	return 0;
 }
@@ -71,7 +71,6 @@ int destroy_scheduler(JobScheduler* sch){
 	printf("At Destroy Scheduler\n");
 
 	stop_threads = 1;
-	finish = 1;
 	execute_all_jobs(sch);
 	wait_all_tasks_finish(sch);
 
