@@ -32,19 +32,23 @@ JobScheduler* initialize_scheduler(int execution_threads){
 }
 
 int submit_job(JobScheduler* sch, Job* j){
+<<<<<<< HEAD
 	pthread_mutex_lock(&(sch->mtx_read));
+=======
+>>>>>>> temp
 	queue_push(sch->queue, j);
-	pthread_mutex_unlock(&(sch->mtx_read));
 
 	return 0;
 }
 
 int execute_all_jobs(JobScheduler* sch){
 	can_exec = 1;			//indicate that it's safe to continue after pthread_cond_wait(&(sch->cond_start_exec),&(sch->mtx_start_exec))
+<<<<<<< HEAD
+=======
+	stop_wait = 0;			// parent stops himself from continue until the last thread permits it with stop_wait = 1
+>>>>>>> temp
     pthread_cond_broadcast(&(sch->cond_start_exec));
-
-	stop_wait = 0;
-
+	
     return 0;
 }
 
@@ -54,14 +58,20 @@ int wait_all_tasks_finish(JobScheduler* sch){
 		pthread_cond_wait(&(sch->cond_end_exec),&(sch->mtx_end_exec));
 	}
 	pthread_mutex_unlock(&(sch->mtx_end_exec));
+<<<<<<< HEAD
 	
 	can_exec = 0;
+=======
+>>>>>>> temp
 
 	return 0;
 }
 
 int destroy_scheduler(JobScheduler* sch){
+<<<<<<< HEAD
 
+=======
+>>>>>>> temp
 	stop_threads = 1;
 	execute_all_jobs(sch);
 	wait_all_tasks_finish(sch);

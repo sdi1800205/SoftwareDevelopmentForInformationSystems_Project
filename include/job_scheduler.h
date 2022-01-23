@@ -19,11 +19,9 @@ typedef struct JobScheduler{
 	// mutex, condition variable, ...
 	pthread_cond_t cond_start_exec;
 	pthread_cond_t cond_end_exec;
-	pthread_cond_t cond_continue;
 
 	pthread_mutex_t mtx_start_exec;
 	pthread_mutex_t mtx_end_exec;
-	pthread_mutex_t mtx_continue;
 
 	pthread_mutex_t mtx_read;
 

@@ -16,7 +16,11 @@
 #include "threads.h"
 
 
+<<<<<<< HEAD
 #define THREADS_NUM 6
+=======
+#define THREADS_NUM 4
+>>>>>>> temp
 
 
 // declaration of multi-thread functions
@@ -95,6 +99,7 @@ ErrorCode InitializeIndex() {
 	// initialize structs for queries and documents
 	queries = set_create(compare_queries, destroy_query);
 	docs = deque_create(0, destroy_document);
+	pthread_mutex_init(&mtx_docs,0);	// initialize mutex for docs
 
 	// create dictionary for exact distance
 	// we use the entry->word as a key and entry as a value in the dictionary, so to delete the it only takes to delete entry
@@ -107,6 +112,7 @@ ErrorCode InitializeIndex() {
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
 
+<<<<<<< HEAD
 	// initialize mutexes
 	pthread_mutex_init(&mtx_queries,NULL);
 	pthread_mutex_init(&mtx_docs,NULL);
@@ -114,6 +120,8 @@ ErrorCode InitializeIndex() {
 	pthread_mutex_init(&mtx_edit_dist,NULL);
 
 
+=======
+>>>>>>> temp
 	// create JobScheduler
 	JobSch = initialize_scheduler(THREADS_NUM);
 
@@ -123,6 +131,8 @@ ErrorCode InitializeIndex() {
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	printf("Threads number: %d\n", JobSch->execution_threads);
 
 	return EC_SUCCESS;
 }
@@ -134,10 +144,12 @@ ErrorCode DestroyIndex() {
 
 	set_destroy(queries);
 	deque_destroy(docs);
+	pthread_mutex_destroy(&mtx_docs);
 
 	if (destroy_scheduler(JobSch) < 0)
 		return EC_FAIL;
 
+<<<<<<< HEAD
 	pthread_mutex_destroy(&mtx_queries);
 	pthread_mutex_destroy(&mtx_docs);
 	pthread_mutex_destroy(&mtx_exact_dist);
@@ -216,6 +228,12 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 ///////////////////////////////// multi-threading ////////////////////////////////////
 ErrorCode StartQuery_mt(Pointer arguments){
 	printf("StartQuery_mt\n");
+=======
+	return EC_SUCCESS;
+}
+
+ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ) {
+>>>>>>> temp
 	Query* query = malloc(sizeof(*query));	// allocate memory for the new query
 	query->query_id = ((SQArgs*)arguments)->id;
 	query->match_type = ((SQArgs*)arguments)->match_type;
@@ -264,7 +282,7 @@ ErrorCode StartQuery_mt(Pointer arguments){
 				exit(EXIT_FAILURE);
 			}
 			
-			// check if entry was inserted or an old one just update its payload
+			// check if entry was inserted or an old one already existed
 			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
 				destroy_entry(entr);		// destroy new entry because it didn't inserted
 
@@ -285,7 +303,7 @@ ErrorCode StartQuery_mt(Pointer arguments){
 				exit(EXIT_FAILURE);
 			}
 
-			// check if entry was inserted or an old one just update its payload
+			// check if entry was inserted or an old one already existed
 			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
 				destroy_entry(entr);		// destroy new entry because it didn't inserted
 
@@ -303,9 +321,13 @@ ErrorCode StartQuery_mt(Pointer arguments){
 	return EC_SUCCESS;
 }
 
+<<<<<<< HEAD
 ErrorCode EndQuery_mt(Pointer arguments) {
 	printf("EndQuery_mt\n");
 	unsigned int query_id = ((EQArgs*)arguments)->id;
+=======
+ErrorCode EndQuery(QueryID query_id) {
+>>>>>>> temp
 	Query target_query = {query_id, NULL, -1, -1};
 	
 	pthread_mutex_lock(&mtx_queries);
@@ -324,7 +346,6 @@ ErrorCode MatchDocument_mt(Pointer arguments){
     // get the arguments to proceed
     int doc_id = ((DocArgs*)arguments)->id;
 	char* doc_str = ((DocArgs*)arguments)->str;
-	char *safe_str;
 	pthread_t thread_id = pthread_self();			// get threads id
 
     // initialize result list
@@ -340,6 +361,10 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 	Map doc_words = map_create(compare_strings, (DestroyFunc)free, NULL);		// (key, value) -> (word, word), so we delete only key or value
 	map_set_hash_function(doc_words, hash_string);
 
+<<<<<<< HEAD
+=======
+	char *safe_str;
+>>>>>>> temp
 	word token = strtok_r((word)doc_str, " ",&safe_str);
 
 	while (token != NULL){
@@ -376,7 +401,10 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 
 		token = strtok_r(NULL, " ",&safe_str);
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> temp
 	map_destroy(doc_words);		// destroy the map of document's words
 
 	Deque match_queries = deque_create(0, NULL);		// create a deque to store temporary the matching queries
@@ -389,7 +417,11 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		// check every entry
 		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)){
 			entry* entr = entry_list_node_value(lnode);
+<<<<<<< HEAD
 			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))){		// check if the entry for this query is valid
+=======
+			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))) {		// check if the entry for this query is valid
+>>>>>>> temp
 				matched = false;
 				break;
 			}
