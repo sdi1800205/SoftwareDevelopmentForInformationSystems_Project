@@ -2,16 +2,25 @@
 
 #include "job.h"
 
-Job* job_create(RoutineFunc routine, Pointer arguments) {
+Job* job_create(RoutineFunc routine, Pointer arguments,char job_type) {
     Job* job = malloc(sizeof(*job));
     job->routine = routine;
     job->arguments = arguments;
+    job->type = job_type;
 
     return job;
 }
 
 void job_destroy(Job* job) {
-    docargs_destroy(job->arguments);
+    if(job->type == 'm'){
+        docargs_destroy(job->arguments);
+    }
+    else if(job->type == 's'){
+
+    }
+    else{
+
+    }
     free(job);
 }
 

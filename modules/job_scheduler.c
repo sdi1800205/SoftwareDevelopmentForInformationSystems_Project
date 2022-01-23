@@ -13,14 +13,13 @@ JobScheduler* initialize_scheduler(int execution_threads){
 	
 	sch->queue = queue_create();
 	sch->execution_threads = execution_threads;
+	sch->docs = false;		//initialise bool docs variable to false, because first jobs to be executed will be start queries
 
 	pthread_cond_init(&(sch->cond_start_exec),NULL);
 	pthread_cond_init(&(sch->cond_end_exec),NULL);
-	pthread_cond_init(&(sch->cond_continue),NULL);
 
 	pthread_mutex_init(&(sch->mtx_start_exec),NULL);
 	pthread_mutex_init(&(sch->mtx_end_exec),NULL);
-	pthread_mutex_init(&(sch->mtx_continue),NULL);
 
 	pthread_mutex_init(&(sch->mtx_read),NULL);
 	pthread_mutex_init(&(sch->mtx_threads_passed),NULL);
@@ -33,7 +32,6 @@ JobScheduler* initialize_scheduler(int execution_threads){
 }
 
 int submit_job(JobScheduler* sch, Job* j){
-	// printf("Called submit_job\n");
 	pthread_mutex_lock(&(sch->mtx_read));
 	queue_push(sch->queue, j);
 	pthread_mutex_unlock(&(sch->mtx_read));
@@ -43,7 +41,6 @@ int submit_job(JobScheduler* sch, Job* j){
 
 int execute_all_jobs(JobScheduler* sch){
 	can_exec = 1;			//indicate that it's safe to continue after pthread_cond_wait(&(sch->cond_start_exec),&(sch->mtx_start_exec))
-    // can_continue = 0;
     pthread_cond_broadcast(&(sch->cond_start_exec));
 
 	stop_wait = 0;
@@ -59,16 +56,11 @@ int wait_all_tasks_finish(JobScheduler* sch){
 	pthread_mutex_unlock(&(sch->mtx_end_exec));
 	
 	can_exec = 0;
-	stop_wait = 0;
-	// can_continue = 1;
-	// pthread_cond_broadcast(&(sch->cond_continue));
-	// printf("Stopped Waiting\n");
 
 	return 0;
 }
 
 int destroy_scheduler(JobScheduler* sch){
-	printf("At Destroy Scheduler\n");
 
 	stop_threads = 1;
 	execute_all_jobs(sch);
@@ -79,15 +71,11 @@ int destroy_scheduler(JobScheduler* sch){
 	}
 	free(sch->tids);
 
-	printf("Threads ended and freed\n");
-
 	pthread_cond_destroy(&(sch->cond_start_exec));
 	pthread_cond_destroy(&(sch->cond_end_exec));
-	pthread_cond_destroy(&(sch->cond_continue));
 
 	pthread_mutex_destroy(&(sch->mtx_start_exec));
 	pthread_mutex_destroy(&(sch->mtx_end_exec));
-	pthread_mutex_destroy(&(sch->mtx_continue));
 
 	pthread_mutex_destroy(&(sch->mtx_read));
 	pthread_mutex_destroy(&(sch->mtx_threads_passed));

@@ -21,26 +21,22 @@ Job* take_job() {
 }
 
 void* start_routine(void* arg){
-	// printf("Threads running %d\n",JobSch->execution_threads);
 	do {
-		// printf("Thread %lu started!\n",pthread_self());
 		pthread_mutex_lock(&(JobSch->mtx_start_exec));
 		while(!can_exec){
 			pthread_cond_wait(&(JobSch->cond_start_exec) , &(JobSch->mtx_start_exec) );
 		}
 		pthread_mutex_unlock(&(JobSch->mtx_start_exec));
 
-		if (stop_threads) {
+		if (stop_threads){
 			if (++threads_passed == JobSch->execution_threads) {
 				finish = 1;
 				pthread_cond_signal(&(JobSch->cond_end_exec));
 			}
 			break;
 		}
-
-		// printf("Thread %lu got in!,stop_threads %d\n",pthread_self(),stop_threads);
 				
-		while(1) {
+		while(1){
 			Job* job = take_job();
 			if(job != NULL){
 				(job->routine)(job->arguments);
@@ -63,9 +59,7 @@ void* start_routine(void* arg){
 		}
 		pthread_mutex_unlock(&(JobSch->mtx_threads_passed));
 
-	} while(1);
-
-	// printf("Thread %lu finished!,stop_threads %d\n",pthread_self(),stop_threads);
+	}while(1);
 	
 	return NULL;
 }
