@@ -23,25 +23,18 @@ Job* take_job() {
 
 void* start_routine(void* arg){
 	do {
-<<<<<<< HEAD
-=======
-		// wait until parent thread send and signal to begin executing jobs
->>>>>>> temp
+		// threads wait here until parent thread permits them to execute jobs
 		pthread_mutex_lock(&(JobSch->mtx_start_exec));
 		while(!can_exec){
 			pthread_cond_wait(&(JobSch->cond_start_exec) , &(JobSch->mtx_start_exec));
 		}
 		pthread_mutex_unlock(&(JobSch->mtx_start_exec));
 
-<<<<<<< HEAD
-		if (stop_threads){
-=======
 		// if parent ends the threads execution it means that he sent a signal to execute all jobs and this variable
 		// will break the main loop of the function, as a result the threads execution
 		if (stop_threads) {
 			// only the last thread that ends sends a signal
 			pthread_mutex_lock(&(JobSch->mtx_threads_passed));
->>>>>>> temp
 			if (++threads_passed == JobSch->execution_threads) {
 				finish = 1;			// indicate to the parent that the executions ended
 				pthread_cond_signal(&(JobSch->cond_end_exec));
@@ -49,14 +42,9 @@ void* start_routine(void* arg){
 			pthread_mutex_unlock(&(JobSch->mtx_threads_passed));
 			break;
 		}
-<<<<<<< HEAD
-				
-		while(1){
-=======
 
 		// loop in which the thread gets a job and executes it until no job remains in the queues
 		while(1) {
->>>>>>> temp
 			Job* job = take_job();
 			if(job != NULL){						// case of an existing a job
 				(job->routine)(job->arguments);
@@ -82,11 +70,7 @@ void* start_routine(void* arg){
 		}
 		pthread_mutex_unlock(&(JobSch->mtx_threads_passed));
 
-<<<<<<< HEAD
-	}while(1);
-=======
 	} while(1);
->>>>>>> temp
 	
 	return NULL;
 }

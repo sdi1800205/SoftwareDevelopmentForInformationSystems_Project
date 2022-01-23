@@ -16,17 +16,11 @@
 #include "threads.h"
 
 
-<<<<<<< HEAD
-#define THREADS_NUM 6
-=======
 #define THREADS_NUM 4
->>>>>>> temp
 
 
 // declaration of multi-thread functions
 ErrorCode MatchDocument_mt(Pointer);
-ErrorCode StartQuery_mt(Pointer);
-ErrorCode EndQuery_mt(Pointer);
 
 // Keeps all information related to an active query
 typedef struct Query
@@ -74,7 +68,6 @@ ErrorCode destroy_document(Pointer value) {
 
 // Keeps all currently active queries
 Set queries;
-pthread_mutex_t mtx_queries;
 
 // Keeps all currently available results that has not been returned yet
 Deque docs;
@@ -83,11 +76,7 @@ pthread_mutex_t mtx_docs;
 //////////// structs for matchtypes ////////////
 // we create structs depend on the match_type and the match_distance
 Map exact_dist;				// struct for exact distance
-pthread_mutex_t mtx_exact_dist;
-
 Index* edit_dist;			// struct for edit distance
-pthread_mutex_t mtx_edit_dist;
-
 hamIndex* ham_dist;			// struct for hamming distance
 
 
@@ -95,6 +84,7 @@ hamIndex* ham_dist;			// struct for hamming distance
 JobScheduler* JobSch; 		// Job Scheduler for multithreading
 
 //////////// core.h functions ///////////////
+
 ErrorCode InitializeIndex() {
 	// initialize structs for queries and documents
 	queries = set_create(compare_queries, destroy_query);
@@ -112,16 +102,6 @@ ErrorCode InitializeIndex() {
 	// create hamming tree for hamming distance
 	ham_dist = create_hamming_index((DestroyFunc)destroy_entry);
 
-<<<<<<< HEAD
-	// initialize mutexes
-	pthread_mutex_init(&mtx_queries,NULL);
-	pthread_mutex_init(&mtx_docs,NULL);
-	pthread_mutex_init(&mtx_exact_dist,NULL);
-	pthread_mutex_init(&mtx_edit_dist,NULL);
-
-
-=======
->>>>>>> temp
 	// create JobScheduler
 	JobSch = initialize_scheduler(THREADS_NUM);
 
@@ -149,68 +129,123 @@ ErrorCode DestroyIndex() {
 	if (destroy_scheduler(JobSch) < 0)
 		return EC_FAIL;
 
-<<<<<<< HEAD
-	pthread_mutex_destroy(&mtx_queries);
-	pthread_mutex_destroy(&mtx_docs);
-	pthread_mutex_destroy(&mtx_exact_dist);
-	pthread_mutex_destroy(&mtx_edit_dist);
-
 	return EC_SUCCESS;
 }
 
-ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ){
-	char* text = malloc(MAX_QUERY_LENGTH * sizeof(char));
-	strcpy(text, query_str);
+ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ) {
+	Query* query = malloc(sizeof(*query));	// allocate memory for the new query
+	query->query_id = query_id;
+	query->match_type = match_type;
+	query->match_dist = match_dist;
+	create_entry_list(&(query->entrylist), NULL);		// we don't want the entry_list to destroy the entries because the structs will do that
 
-	// create a job and push it to the scheduler
-	Job* job = job_create(StartQuery_mt, sqargs_create(query_id,text,match_type,match_dist),'s');
-	submit_job(JobSch, job);
+	// add query in the set of queries
+	set_insert(queries, query);
+
+	// add query's words into the correct struct
+
+	char* token = strtok((word)query_str, " ");
+	entry* entr;
+	// check in which struct the query should be inserted
+	switch (match_type)	{
+	case MT_EXACT_MATCH:
+		while (token != NULL) {
+			entry* old_entry = map_find(exact_dist, token);		// check if the entry's word already exists in the map
+
+			if (old_entry != NULL)										// case in which the entry's word already exists in the map
+				entr = old_entry;										// keep old entry in current entries value so the query can have access to it, since the new entry destroyed
+			else {														// case of entry's word first appearance
+				create_entry(token, &entr);								// create a new entry for current word
+				map_insert(exact_dist, get_entry_word(entr), entr);						// we pass as key and value the same value, so the set_find returns the entry we search as a key
+			}
+			add_entry(query->entrylist, entr);						// we add entry in current query's entry_list
+
+			token = strtok(NULL, " ");			// take the next word
+		}
+		break;
+	case MT_EDIT_DIST:
+		while (token != NULL) {
+			create_entry(token, &entr);						// create entry
+			entry* inserted = insert_entry_index(edit_dist, entr);		// insert entry in tree with correct match_dist
+			if (inserted == NULL) {				// the insertion or updating went wrong
+				fprintf(stderr, "Fail in StartQuery->MT_EDIT_DIST->insert_entry_index\n");
+				exit(EXIT_FAILURE);
+			}
+			
+			// check if entry was inserted or an old one already existed
+			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
+				destroy_entry(entr);		// destroy new entry because it didn't inserted
+
+			add_entry(query->entrylist, inserted);			// we add entry that has been inserted or updated in current query's entry_list
+
+			token = strtok(NULL, " ");			// take the next word
+		}
+		break;		
+	case MT_HAMMING_DIST:
+		while (token != NULL) {
+			// same as in MT_EDIT_DIST
+
+			create_entry(token, &entr);
+			entry* inserted = insert_hamming_index(ham_dist, entr);			// insert entry in tree with correct match_dist
+			if (inserted == NULL) {				// the insertion or updating went wrong
+				fprintf(stderr, "Fail in StartQuery->MT_HAMMING_DIST->insert_entry_index\n");
+				exit(EXIT_FAILURE);
+			}
+
+			// check if entry was inserted or an old one already existed
+			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
+				destroy_entry(entr);		// destroy new entry because it didn't inserted
+
+			add_entry(query->entrylist, inserted);			// we add entry that has been inserted or updated in current query's entry_list
+
+			token = strtok(NULL, " ");			// take the next word
+		}
+		break;		
+	default:
+		fprintf(stderr, "Wrong match_type\n");
+		exit(EXIT_FAILURE);
+		break;
+	}
 
 	return EC_SUCCESS;
 }
 
 ErrorCode EndQuery(QueryID query_id) {
-	// create a job and push it to the scheduler
-	Job* job = job_create(EndQuery_mt, eqargs_create(query_id),'e');
-	submit_job(JobSch, job);
+	Query target_query = {query_id, NULL, -1, -1};
 	
+	// remove query from set of queries
+	if (!(set_remove(queries, &target_query))) {
+		printf("EndQuery: fail in set_remove\n");
+		return EC_FAIL;
+	}
+
 	return EC_SUCCESS;
 }
 
 ErrorCode MatchDocument(DocID doc_id, const char * doc_str) {
-	// check if there are jobs to execute, and if they do execute them
-	if (jobscheduler_size(JobSch) > 0 && !(JobSch->docs)){
-		if (execute_all_jobs(JobSch) < 0)
-			return EC_FAIL;
-		if (wait_all_tasks_finish(JobSch) < 0)
-			return EC_FAIL;
-		JobSch->docs = true;		//all start/end query jobs have been executed, so now we fill the scheduler with match document jobs 
-	}
-
 	// allocate memory for documents string
 	char* text = malloc(MAX_DOC_LENGTH * sizeof(char));
 	strcpy(text, doc_str);
 
 	// create a job and push it to the scheduler
-	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, text),'m');
+	Job* job = job_create(MatchDocument_mt, docargs_create(doc_id, text));
 	submit_job(JobSch, job);
 
 	return EC_SUCCESS;
 }
 
 ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID ** p_query_ids) {
-	printf("GetNextAvailRes\n");
 	// check if there are jobs to execute, and if they do execute them
-	if (jobscheduler_size(JobSch) > 0 && JobSch->docs) {
+	if (jobscheduler_size(JobSch) > 0) {
 		if (execute_all_jobs(JobSch) < 0)
 			return EC_FAIL;
 		if (wait_all_tasks_finish(JobSch) < 0)
 			return EC_FAIL;
-		JobSch->docs = false;
 	}
 
 
 	// Get the first undeliverd result from "docs" and return it
+	
 	if(deque_size(docs) == 0) return EC_NO_AVAIL_RES;
 	
 	Document* doc = deque_get_at(docs, 0);		// get first document
@@ -226,123 +261,8 @@ ErrorCode GetNextAvailRes(DocID * p_doc_id, unsigned int * p_num_res, QueryID **
 
 
 ///////////////////////////////// multi-threading ////////////////////////////////////
-ErrorCode StartQuery_mt(Pointer arguments){
-	printf("StartQuery_mt\n");
-=======
-	return EC_SUCCESS;
-}
-
-ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist ) {
->>>>>>> temp
-	Query* query = malloc(sizeof(*query));	// allocate memory for the new query
-	query->query_id = ((SQArgs*)arguments)->id;
-	query->match_type = ((SQArgs*)arguments)->match_type;
-	query->match_dist = ((SQArgs*)arguments)->match_distance;
-	create_entry_list(&(query->entrylist), NULL);		// we don't want the entry_list to destroy the entries because the structs will do that
-
-	pthread_mutex_lock(&mtx_queries);
-	// add query in the set of queries
-	set_insert(queries, query);
-	pthread_mutex_unlock(&mtx_queries);
-
-	// add query's words into the correct struct
-	char *safe_str;
-	char* token = strtok_r(((SQArgs*)arguments)->str, " ",&safe_str);
-	entry* entr;
-
-	// check in which struct the query should be inserted
-	switch (query->match_type)	{
-	case MT_EXACT_MATCH:
-		while (token != NULL) {
-			pthread_mutex_lock(&mtx_exact_dist);
-			entry* old_entry = map_find(exact_dist, token);		// check if the entry's word already exists in the map
-			pthread_mutex_unlock(&mtx_exact_dist);
-
-			if (old_entry != NULL)										// case in which the entry's word already exists in the map
-				entr = old_entry;										// keep old entry in current entries value so the query can have access to it, since the new entry destroyed
-			else {														// case of entry's word first appearance
-				create_entry(token, &entr);								// create a new entry for current word
-				pthread_mutex_lock(&mtx_exact_dist);
-				map_insert(exact_dist, get_entry_word(entr), entr);						// we pass as key and value the same value, so the set_find returns the entry we search as a key
-				pthread_mutex_unlock(&mtx_exact_dist);
-			}
-			add_entry(query->entrylist, entr);						// we add entry in current query's entry_list
-
-			token = strtok_r(NULL, " ",&safe_str);			// take the next word
-		}
-		break;
-	case MT_EDIT_DIST:
-		while (token != NULL) {
-			create_entry(token, &entr);						// create entry
-			pthread_mutex_lock(&mtx_edit_dist);
-			entry* inserted = insert_entry_index(edit_dist, entr);		// insert entry in tree with correct match_dist
-			pthread_mutex_unlock(&mtx_edit_dist);
-			if (inserted == NULL) {				// the insertion or updating went wrong
-				fprintf(stderr, "Fail in StartQuery->MT_EDIT_DIST->insert_entry_index\n");
-				exit(EXIT_FAILURE);
-			}
-			
-			// check if entry was inserted or an old one already existed
-			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
-				destroy_entry(entr);		// destroy new entry because it didn't inserted
-
-			add_entry(query->entrylist, inserted);			// we add entry that has been inserted or updated in current query's entry_list
-
-			token = strtok_r(NULL, " ",&safe_str);			// take the next word
-		}
-		break;		
-	case MT_HAMMING_DIST:
-		while (token != NULL) {
-			// same as in MT_EDIT_DIST
-
-			create_entry(token, &entr);
-			//here mutex locking happens inside this function for a specific bk_tree inside hamming tree struct
-			entry* inserted = insert_hamming_index(ham_dist, entr);			// insert entry in tree with correct match_dist
-			if (inserted == NULL) {				// the insertion or updating went wrong
-				fprintf(stderr, "Fail in StartQuery->MT_HAMMING_DIST->insert_entry_index\n");
-				exit(EXIT_FAILURE);
-			}
-
-			// check if entry was inserted or an old one already existed
-			if (inserted != entr)			// another entry, equal to new, already existed("inserted" variable holds the entry that remains in the tree or the new one that inserted)
-				destroy_entry(entr);		// destroy new entry because it didn't inserted
-
-			add_entry(query->entrylist, inserted);			// we add entry that has been inserted or updated in current query's entry_list
-
-			token = strtok_r(NULL, " ",&safe_str);			// take the next word
-		}
-		break;		
-	default:
-		fprintf(stderr, "Wrong match_type\n");
-		exit(EXIT_FAILURE);
-		break;
-	}
-
-	return EC_SUCCESS;
-}
-
-<<<<<<< HEAD
-ErrorCode EndQuery_mt(Pointer arguments) {
-	printf("EndQuery_mt\n");
-	unsigned int query_id = ((EQArgs*)arguments)->id;
-=======
-ErrorCode EndQuery(QueryID query_id) {
->>>>>>> temp
-	Query target_query = {query_id, NULL, -1, -1};
-	
-	pthread_mutex_lock(&mtx_queries);
-	// remove query from set of queries
-	if (!(set_remove(queries, &target_query))) {
-		printf("EndQuery: fail in set_remove, query_id:%d\n",query_id);
-		return EC_FAIL;
-	}
-	pthread_mutex_unlock(&mtx_queries);
-	
-	return EC_SUCCESS;
-}
 
 ErrorCode MatchDocument_mt(Pointer arguments){
-	printf("MatchDocument_mt\n");
     // get the arguments to proceed
     int doc_id = ((DocArgs*)arguments)->id;
 	char* doc_str = ((DocArgs*)arguments)->str;
@@ -361,10 +281,7 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 	Map doc_words = map_create(compare_strings, (DestroyFunc)free, NULL);		// (key, value) -> (word, word), so we delete only key or value
 	map_set_hash_function(doc_words, hash_string);
 
-<<<<<<< HEAD
-=======
 	char *safe_str;
->>>>>>> temp
 	word token = strtok_r((word)doc_str, " ",&safe_str);
 
 	while (token != NULL){
@@ -382,7 +299,6 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		// start matching
 
 		// lookup the hash table
-
 		entry* res_entry = map_find(exact_dist, token);		// take the one entry(if it exists) that the hash table will return since it has to be the same word
 		if (res_entry != NULL) {
 			entry_add_thread(res_entry, thread_id);					// add thread id to entry's matched threads
@@ -401,10 +317,6 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 
 		token = strtok_r(NULL, " ",&safe_str);
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> temp
 	map_destroy(doc_words);		// destroy the map of document's words
 
 	Deque match_queries = deque_create(0, NULL);		// create a deque to store temporary the matching queries
@@ -415,13 +327,9 @@ ErrorCode MatchDocument_mt(Pointer arguments){
 		bool matched = true;		// if all the query's words are true then this variable will remain true, else will turn to false
 
 		// check every entry
-		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)){
+		for (entry_list_node* lnode = get_first(query->entrylist); lnode != LIST_EOF; lnode = get_next(query->entrylist, lnode)) {
 			entry* entr = entry_list_node_value(lnode);
-<<<<<<< HEAD
-			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))){		// check if the entry for this query is valid
-=======
 			if (!(get_entry_pthread_t(entr, thread_id) != NULL && (get_entry_dist(entr, thread_id) <= query->match_dist))) {		// check if the entry for this query is valid
->>>>>>> temp
 				matched = false;
 				break;
 			}

@@ -10,8 +10,6 @@
 
 typedef struct JobScheduler{
 	int execution_threads; 		// number of execution threads
-	bool docs;				//indicates if scheduler is full of match documents or start/end queries
-
 	Queue queue; 					// a queue that holds submitted jobs / tasks
 	pthread_t* tids; 			// execution threads
 
@@ -19,9 +17,11 @@ typedef struct JobScheduler{
 	// mutex, condition variable, ...
 	pthread_cond_t cond_start_exec;
 	pthread_cond_t cond_end_exec;
+	pthread_cond_t cond_continue;
 
 	pthread_mutex_t mtx_start_exec;
 	pthread_mutex_t mtx_end_exec;
+	pthread_mutex_t mtx_continue;
 
 	pthread_mutex_t mtx_read;
 
