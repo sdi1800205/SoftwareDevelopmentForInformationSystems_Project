@@ -10,6 +10,7 @@
 
 struct hamIndex {
     struct BK_tree *BK_trees[HAMMING_LENGTH];   // array of pointers to BK_trees
+    pthread_mutex_t mtx_lock_tree[HAMMING_LENGTH];  //array of mutexes for locking access to the above trees
     DestroyFunc destroy;                        // function that pass through the trees
 };
 
@@ -20,7 +21,7 @@ hamIndex* create_hamming_index(DestroyFunc destroy) {
 
     // initialize all pointers to NULL
     for (int i=0; i<HAMMING_LENGTH; i++) {
-        new_indx->BK_trees[i] = NULL; 
+        new_indx->BK_trees[i] = NULL;
     }
 
     return new_indx;
@@ -34,6 +35,7 @@ ErrorCode destroy_hamming_index(hamIndex* h) {
             e = destroy_entry_index(h->BK_trees[i]);
             if (e != EC_SUCCESS) 
                 return EC_FAIL;
+            pthread_mutex_destroy(&(h->mtx_lock_tree[i]));
         }
     }
 
@@ -49,10 +51,15 @@ entry* insert_hamming_index(hamIndex* h, entry *e) {
     if (h->BK_trees[word_length - 4] == NULL) { // word_lengths from 4 to 28, array starts at 0 so word_length - 4 is the right index of the array
         // create new BK_tree if there isn't any allocated for this word_length
         create_entry_index(&(h->BK_trees[word_length - 4]), MT_HAMMING_DIST, h->destroy);
+        pthread_mutex_init(&(h->mtx_lock_tree[word_length - 4]),NULL);
     }
 
     // insert into BK_tree. Exists for this word_length
-    return insert_entry_index(h->BK_trees[word_length - 4], e);
+    pthread_mutex_lock(&(h->mtx_lock_tree[word_length-4]));
+    entry *entr = insert_entry_index(h->BK_trees[word_length - 4], e);
+    pthread_mutex_unlock(&(h->mtx_lock_tree[word_length-4]));
+
+    return entr;
 }
 
 ErrorCode lookup_hamming_index(const word w, hamIndex* hamindx, int threshold, entry_list** result, pthread_t target_thread) {
