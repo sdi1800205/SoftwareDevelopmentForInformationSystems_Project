@@ -23,17 +23,12 @@ Job* take_job() {
 
 void* start_routine(void* arg){
 	do {
-		// printf("Thread: %lu Started before lock!\n", pthread_self());
 		// wait until parent thread send and signal to begin executing jobs
-		// pthread_barrier_wait(&(JobSch->barrier));
 		pthread_mutex_lock(&(JobSch->mtx_start_exec));
-		// printf("Thread: %lu Started after lock!\n", pthread_self());
 		while(!can_exec){
 			pthread_cond_wait(&(JobSch->cond_start_exec) , &(JobSch->mtx_start_exec));
 		}
-		// printf("Thread: %lu after wait!\n", pthread_self());
 		pthread_mutex_unlock(&(JobSch->mtx_start_exec));
-		// printf("Thread: %lu continue!\n", pthread_self());
 
 		// if parent ends the threads execution it means that he sent a signal to execute all jobs and this variable
 		// will break the main loop of the function, as a result the threads execution
@@ -61,7 +56,6 @@ void* start_routine(void* arg){
 
 		// after executing the jobs all the threads should end up at the same time so
 		// we use barrier for this job 
-		// printf("Thread: %lu reached barrier!\n", pthread_self());
 		pthread_barrier_wait(&(JobSch->barrier));
 		can_exec = 0;			// stop child threads from rerun, only parent thread permits that
 
